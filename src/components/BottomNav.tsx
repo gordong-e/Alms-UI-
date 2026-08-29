@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, HandHeart, TrendingUp, User, Plus, Map, Compass } from 'lucide-react';
+import { Home, HandHeart, User, Plus, Compass, CalendarCheck, ScanLine } from 'lucide-react';
 import { ScreenType, UserRole } from '../types';
 
 interface BottomNavProps {
@@ -30,7 +30,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         >
           {isDonator ? (
             <>
-              {/* Donator Nav: Home | Donations | [+] | Impact | Profile */}
+              {/* Donator Nav: Home | Donations | [+] | Bookings | Profile */}
               <button
                 onClick={() => onNavigate('dashboard')}
                 className={`flex flex-col items-center gap-1 px-3 py-1 rounded-full transition-all ${
@@ -67,16 +67,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               </button>
 
               <button
-                onClick={() => onNavigate('impact')}
+                onClick={() => onNavigate('bookings')}
                 className={`flex flex-col items-center gap-1 px-3 py-1 rounded-full transition-all ${
-                  currentScreen === 'impact'
+                  currentScreen === 'bookings'
                     ? 'text-[#ccf148] font-bold'
                     : 'text-white/70 hover:text-white'
                 }`}
-                aria-label="Impact"
+                aria-label="Bookings"
               >
-                <TrendingUp className="w-5 h-5" strokeWidth={currentScreen === 'impact' ? 2.5 : 1.8} />
-                <span className="text-[10px] tracking-tight">Impact</span>
+                <CalendarCheck className="w-5 h-5" strokeWidth={currentScreen === 'bookings' ? 2.5 : 1.8} />
+                <span className="text-[10px] tracking-tight">Bookings</span>
               </button>
 
               <button
@@ -94,7 +94,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             </>
           ) : (
             <>
-              {/* Rescuer Nav: Map | Impact | Profile */}
+              {/* Rescuer Nav: Explore | QR Scan | Profile */}
               <button
                 onClick={() => onNavigate('rescuer_map')}
                 className={`flex flex-col items-center gap-1 px-4 py-1 rounded-full transition-all ${
@@ -102,12 +102,24 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                     ? 'text-[#ccf148] font-bold'
                     : 'text-white/70 hover:text-white'
                 }`}
-                aria-label="Map"
+                aria-label="Explore"
               >
                 <Compass className="w-5 h-5" strokeWidth={currentScreen === 'rescuer_map' || currentScreen === 'rescuer_feed' ? 2.5 : 1.8} />
                 <span className="text-[10px] tracking-tight">Explore</span>
               </button>
 
+              <button
+                onClick={() => onNavigate('rescuer_qr')}
+                className={`flex flex-col items-center gap-1 px-4 py-1 rounded-full transition-all ${
+                  currentScreen === 'rescuer_qr'
+                    ? 'text-[#ccf148] font-bold'
+                    : 'text-white/70 hover:text-white'
+                }`}
+                aria-label="Scan QR"
+              >
+                <ScanLine className="w-5 h-5" strokeWidth={currentScreen === 'rescuer_qr' ? 2.5 : 1.8} />
+                <span className="text-[10px] tracking-tight">Pickups</span>
+              </button>
 
               <button
                 onClick={() => onNavigate('profile')}
@@ -130,3 +142,4 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     </div>
   );
 };
+

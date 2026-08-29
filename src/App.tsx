@@ -18,6 +18,8 @@ import { CreateListingModal } from './components/CreateListingModal';
 import { ListingDetailsModal } from './components/ListingDetailsModal';
 import { ClaimModal } from './components/ClaimModal';
 import { PersonaVerification } from './components/PersonaVerification';
+import { BookingsScreen } from './components/BookingsScreen';
+import { RescuerQRScreen } from './components/RescuerQRScreen';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -270,7 +272,7 @@ export default function App() {
   };
 
   const handleNavigate = (screen: ScreenType) => {
-    const authRequiredScreens: ScreenType[] = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map', 'role_selection', 'donator_onboarding'];
+    const authRequiredScreens: ScreenType[] = ['dashboard', 'donations', 'profile', 'impact', 'bookings', 'rescuer_feed', 'rescuer_map', 'rescuer_qr', 'role_selection', 'donator_onboarding'];
     if (authRequiredScreens.includes(screen) && !isAuthenticated) {
       setCurrentScreen('signup');
       return;
@@ -287,7 +289,7 @@ export default function App() {
   // ── Presentation Logic ──
 
   const showHeader = !['role_selection', 'signup', 'login', 'landing', 'donator_onboarding'].includes(currentScreen);
-  const showBottomNav = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map'].includes(currentScreen);
+  const showBottomNav = ['dashboard', 'donations', 'profile', 'impact', 'bookings', 'rescuer_feed', 'rescuer_map', 'rescuer_qr'].includes(currentScreen);
   const headerVariant = currentScreen === 'profile' ? 'profile' : 'standard';
 
   const getBottomNavVariant = (): 'center-plus' | 'side-plus' => {
@@ -401,6 +403,10 @@ export default function App() {
                 <ImpactScreen profile={profile} />
               )}
 
+              {currentScreen === 'bookings' && profile && (
+                <BookingsScreen profile={profile} />
+              )}
+
               {currentScreen === 'rescuer_map' && (
                 <RescuerMapScreen
                   donations={donations}
@@ -414,6 +420,13 @@ export default function App() {
                   donations={donations}
                   donators={donators}
                   onSelectDonation={handleSelectDonationForClaim}
+                />
+              )}
+
+              {currentScreen === 'rescuer_qr' && profile && (
+                <RescuerQRScreen
+                  profile={profile}
+                  onRefreshData={() => refreshData(profile.id)}
                 />
               )}
             </motion.div>

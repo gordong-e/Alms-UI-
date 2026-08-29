@@ -7,8 +7,10 @@ export type ScreenType =
   | 'donations' 
   | 'profile' 
   | 'impact' 
+  | 'bookings'
   | 'rescuer_feed'
   | 'rescuer_map'
+  | 'rescuer_qr'
   | 'donator_onboarding';
 
 export type UserRole = 'donate' | 'rescue';

@@ -351,7 +351,8 @@ export const api = {
   },
 
   async claimDonation(donationId: string, rescuerId: string, claimQuantity: number): Promise<any> {
-    // Insert into claims
+    // Insert a PENDING claim — do NOT reduce available_quantity yet.
+    // Quantity only decreases when the QR code is scanned (confirmCollection).
     const { data, error } = await supabase.from('claims').insert({
       donation_id: donationId,
       rescuer_id: rescuerId,
@@ -364,27 +365,23 @@ export const api = {
       throw error;
     }
 
-    // Manually reduce available_quantity and update status
-    const { data: donData, error: fetchError } = await supabase
-      .from('donations')
-      .select('available_quantity')
-      .eq('id', donationId)
-      .single();
-
-    if (!fetchError && donData) {
-      const newQty = Math.max(0, (donData.available_quantity || 0) - claimQuantity);
-      const newStatus = newQty === 0 ? 'CLAIMED' : 'AVAILABLE';
-
-      await supabase
-        .from('donations')
-        .update({ available_quantity: newQty, status: newStatus })
-        .eq('id', donationId);
-    }
-
     return data;
   },
 
   async confirmCollection(claimId: string): Promise<void> {
+    // 1. Get the claim to know its quantity and donation_id
+    const { data: claim, error: claimFetchError } = await supabase
+      .from('claims')
+      .select('claimed_quantity, donation_id')
+      .eq('id', claimId)
+      .single();
+
+    if (claimFetchError || !claim) {
+      console.error('confirmCollection: could not fetch claim', claimFetchError);
+      throw claimFetchError || new Error('Claim not found');
+    }
+
+    // 2. Mark the claim as PICKED_UP
     const { error } = await supabase
       .from('claims')
       .update({ status: 'PICKED_UP' })
@@ -393,6 +390,23 @@ export const api = {
     if (error) {
       console.error('confirmCollection error:', error);
       throw error;
+    }
+
+    // 3. NOW reduce available_quantity on the donation
+    const { data: donData, error: donFetchError } = await supabase
+      .from('donations')
+      .select('available_quantity')
+      .eq('id', claim.donation_id)
+      .single();
+
+    if (!donFetchError && donData) {
+      const newQty = Math.max(0, (donData.available_quantity || 0) - claim.claimed_quantity);
+      const newStatus = newQty === 0 ? 'CLAIMED' : 'AVAILABLE';
+
+      await supabase
+        .from('donations')
+        .update({ available_quantity: newQty, status: newStatus })
+        .eq('id', claim.donation_id);
     }
   },
 
@@ -406,6 +420,22 @@ export const api = {
       
     if (error) {
       console.error('getPendingClaims error:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async getRescuerBookings(rescuerId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('claims')
+      .select('*, donation:donations!inner(*, donator:donator_id(business_name, address))')
+      .eq('rescuer_id', rescuerId)
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('getRescuerBookings error:', error);
       return [];
     }
 

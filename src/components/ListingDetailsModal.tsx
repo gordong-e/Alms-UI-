@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Clock, Utensils, MapPin, CheckCircle, QrCode, Phone, Share2, AlertCircle, ArrowRight } from 'lucide-react';
+import { X, Clock, Utensils, MapPin, CheckCircle, Phone, Share2, AlertCircle, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DonationItem, UserRole } from '../types';
 
@@ -20,7 +20,6 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
   onClaimRescue,
   onEditListing,
 }) => {
-  const [showQr, setShowQr] = useState(false);
   const [claimed, setClaimed] = useState(item?.status !== 'available');
 
   if (!isOpen || !item) return null;
