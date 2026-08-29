@@ -36,6 +36,7 @@ export const DonatorOnboardingScreen: React.FC<DonatorOnboardingScreenProps> = (
   const handleSubmit = () => {
     onComplete({
       businessName,
+      phone,
       categories,
       lat: location?.lat || 31.2240,
       lng: location?.lng || 75.7708,

@@ -4,54 +4,95 @@ import { DonationItem, DonatorProfile, UserProfile } from '../types';
 export const api = {
   // --- Users ---
   async getUserProfile(userId: string, retries = 3): Promise<UserProfile> {
-    // Fetch from users table using maybeSingle to avoid PGRST116 throwing immediately
-    let { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
-    
-    if (userError) throw userError;
+    // Use maybeSingle to avoid PGRST116 on 0 rows
+    let { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError) {
+      console.error('getUserProfile: error fetching user', userError);
+      throw userError;
+    }
 
     if (!userData) {
       if (retries > 0) {
-        // Race condition: trigger hasn't finished inserting public.users row yet. Wait 1s and try again.
+        // Race condition: DB trigger hasn't finished yet
         await new Promise(res => setTimeout(res, 1000));
         return this.getUserProfile(userId, retries - 1);
-      } else {
-        // Trigger completely failed (or timed out). Upsert manually as a fallback so the UI never white-screens.
-        const { data: sessionData } = await supabase.auth.getSession();
-        const user = sessionData.session?.user;
-        
-        const { data: newUser, error: insertError } = await supabase.from('users').upsert({
+      }
+      // Trigger failed completely — manually upsert so the UI never white-screens
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user;
+
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .upsert({
           id: userId,
           email: user?.email || '',
           name: user?.user_metadata?.full_name || user?.user_metadata?.name || 'Alms User',
-          role: 'UNASSIGNED'
-        }).select('*').single();
-        
-        if (insertError) throw insertError;
-        userData = newUser;
+          role: 'UNASSIGNED',
+        })
+        .select('*')
+        .single();
+
+      if (insertError) {
+        console.error('getUserProfile: upsert fallback failed', insertError);
+        // Return a minimal profile so the UI can at least render
+        return {
+          id: userId,
+          name: user?.user_metadata?.name || 'User',
+          email: user?.email || '',
+          role: 'donate',
+          avatarUrl: '',
+          storeAvatarUrl: '',
+          organizationName: '',
+          verified: false,
+          memberSince: new Date().toLocaleDateString(),
+          mealsDonated: 0,
+          kgSaved: 0,
+          mealsReceived: 0,
+          kgRescued: 0,
+          currentBadge: 'Bronze',
+          nextBadge: 'Silver',
+          badgeProgress: 0,
+          bio: '',
+          phone: '',
+          address: '',
+          isOnboarded: false,
+        };
       }
+      userData = newUser;
     }
 
-    let donatorData = null;
+    // Fetch donator profile if role is DONATOR
+    let donatorData: any = null;
     if (userData.role === 'DONATOR') {
-      const { data, error: donatorError } = await supabase.from('donators').select('*').eq('id', userId).maybeSingle();
-      if (donatorError) throw donatorError;
-      donatorData = data;
+      const { data, error: donatorError } = await supabase
+        .from('donators')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!donatorError) {
+        donatorData = data;
+      }
     }
 
     return {
       id: userData.id,
       name: userData.name || donatorData?.business_name || 'User',
-      email: userData.email,
-      role: userData.role as any,
-      avatarUrl: donatorData?.avatarUrl || '', // For now empty strings for mock visuals
-      storeAvatarUrl: donatorData?.avatarUrl || '',
-      organizationName: donatorData?.business_name || '',
+      email: userData.email || '',
+      role: userData.role === 'DONATOR' ? 'donate' : userData.role === 'RESCUER' ? 'rescue' : 'donate',
+      avatarUrl: donatorData?.avatar_url || '',
+      storeAvatarUrl: donatorData?.avatar_url || '',
+      organizationName: donatorData?.business_name || userData.name || '',
       verified: true,
-      memberSince: new Date(userData.created_at).toLocaleDateString(),
+      memberSince: userData.created_at ? new Date(userData.created_at).toLocaleDateString() : 'Recently',
       mealsDonated: donatorData?.meals_donated || 0,
       kgSaved: donatorData?.kg_saved || 0,
-      mealsReceived: userData.meals_received || 0,
-      kgRescued: userData.kg_rescued || 0,
+      mealsReceived: 0,
+      kgRescued: 0,
       currentBadge: 'Silver Saver',
       nextBadge: 'Gold',
       badgeProgress: 75,
@@ -66,48 +107,66 @@ export const api = {
 
   async getDonators(): Promise<DonatorProfile[]> {
     const { data, error } = await supabase.from('donators').select('*');
-    if (error) throw error;
+    if (error) {
+      console.error('getDonators error:', error);
+      return [];
+    }
     return (data || []).map((d: any) => ({
       id: d.id,
-      businessName: d.business_name,
-      phone: d.phone,
-      address: d.address,
-      lat: d.lat,
-      lng: d.lng,
-      categories: d.categories,
-      mealsDonated: d.meals_donated,
-      kgSaved: d.kg_saved,
-      createdAt: d.created_at,
+      businessName: d.business_name || 'Unknown',
+      phone: d.phone || '',
+      address: d.address || '',
+      lat: d.lat || 31.224,
+      lng: d.lng || 75.771,
+      categories: d.categories || [],
+      mealsDonated: d.meals_donated || 0,
+      kgSaved: d.kg_saved || 0,
+      createdAt: d.created_at || '',
     }));
   },
 
   async onboardDonator(userId: string, profile: Partial<DonatorProfile>): Promise<DonatorProfile> {
-    const { data, error } = await supabase.from('donators').insert({
-      id: userId,
-      business_name: profile.businessName,
-      phone: profile.phone,
-      address: profile.address,
-      lat: profile.lat,
-      lng: profile.lng,
-      categories: profile.categories || [],
-    }).select().single();
+    // Use upsert to handle the case where a partial row already exists
+    const { data, error } = await supabase
+      .from('donators')
+      .upsert({
+        id: userId,
+        business_name: profile.businessName || 'My Business',
+        phone: profile.phone || '',
+        address: profile.address || '',
+        lat: profile.lat || 31.224,
+        lng: profile.lng || 75.771,
+        categories: profile.categories || [],
+      })
+      .select()
+      .single();
 
-    if (error) throw error;
-    
-    // Also update user role to donator
-    await supabase.from('users').update({ role: 'DONATOR' }).eq('id', userId);
+    if (error) {
+      console.error('onboardDonator error:', error);
+      throw error;
+    }
+
+    // Also update user role to DONATOR
+    const { error: roleError } = await supabase
+      .from('users')
+      .update({ role: 'DONATOR' })
+      .eq('id', userId);
+
+    if (roleError) {
+      console.error('onboardDonator: failed to update role', roleError);
+    }
 
     return {
       id: data.id,
-      businessName: data.business_name,
-      phone: data.phone,
-      address: data.address,
-      lat: data.lat,
-      lng: data.lng,
-      categories: data.categories,
-      mealsDonated: data.meals_donated,
-      kgSaved: data.kg_saved,
-      createdAt: data.created_at,
+      businessName: data.business_name || '',
+      phone: data.phone || '',
+      address: data.address || '',
+      lat: data.lat || 31.224,
+      lng: data.lng || 75.771,
+      categories: data.categories || [],
+      mealsDonated: data.meals_donated || 0,
+      kgSaved: data.kg_saved || 0,
+      createdAt: data.created_at || '',
     };
   },
 
@@ -118,25 +177,28 @@ export const api = {
       .select('*, donator:donator_id ( business_name, address )')
       .eq('status', 'available')
       .order('created_at', { ascending: false });
-      
-    if (error) throw error;
-    
+
+    if (error) {
+      console.error('getAvailableDonations error:', error);
+      return [];
+    }
+
     return (data || []).map((d: any) => ({
       id: d.id,
-      title: d.title,
-      description: d.description,
-      category: d.category,
-      totalQuantity: d.total_quantity,
-      availableQuantity: d.available_quantity,
-      expiresText: `Expires in 4h`, // Simplify for now or calculate from created_at
+      title: d.title || 'Untitled Donation',
+      description: d.description || '',
+      category: d.category || 'Bakery',
+      totalQuantity: d.total_quantity || 0,
+      availableQuantity: d.available_quantity || 0,
+      expiresText: 'Expires in 4h',
       hoursLeft: 4,
       imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
-      status: d.status ? d.status.toLowerCase() : 'available',
+      status: 'available' as const,
       donorName: d.donator?.business_name || 'Unknown Donator',
       location: d.donator?.address || 'Unknown Location',
-      createdAt: d.created_at,
+      createdAt: d.created_at || '',
       pickupWindow: d.pickup_window || 'Today',
-      instructions: d.instructions,
+      instructions: d.instructions || '',
       lat: d.lat || 31.224,
       lng: d.lng || 75.771,
     }));
@@ -152,26 +214,62 @@ export const api = {
     if (donatorId) {
       query = query.eq('donator_id', donatorId);
     }
-      
+
     const { data, error } = await query;
-    if (error) throw error;
-    
+    if (error) {
+      console.error('getHistoryDonations error:', error);
+      return [];
+    }
+
     return (data || []).map((d: any) => ({
       id: d.id,
-      title: d.title,
-      description: d.description,
-      category: d.category,
-      totalQuantity: d.total_quantity,
-      availableQuantity: d.available_quantity,
+      title: d.title || 'Untitled',
+      description: d.description || '',
+      category: d.category || 'Bakery',
+      totalQuantity: d.total_quantity || 0,
+      availableQuantity: d.available_quantity || 0,
       expiresText: 'Completed',
       hoursLeft: 0,
       imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
-      status: 'completed',
+      status: (d.status || 'completed') as any,
       donorName: d.donator?.business_name || 'Unknown Donator',
       location: d.donator?.address || 'Unknown Location',
-      createdAt: d.created_at,
+      createdAt: d.created_at || '',
       pickupWindow: d.pickup_window || 'Past',
-      instructions: d.instructions,
+      instructions: d.instructions || '',
+      lat: d.lat || 31.224,
+      lng: d.lng || 75.771,
+    }));
+  },
+
+  async getDonatorDonations(donatorId: string): Promise<DonationItem[]> {
+    const { data, error } = await supabase
+      .from('donations')
+      .select('*, donator:donator_id ( business_name, address )')
+      .eq('donator_id', donatorId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('getDonatorDonations error:', error);
+      return [];
+    }
+
+    return (data || []).map((d: any) => ({
+      id: d.id,
+      title: d.title || 'Untitled',
+      description: d.description || '',
+      category: d.category || 'Bakery',
+      totalQuantity: d.total_quantity || 0,
+      availableQuantity: d.available_quantity || 0,
+      expiresText: (d.status === 'available') ? 'Expires in 4h' : 'Completed',
+      hoursLeft: (d.status === 'available') ? 4 : 0,
+      imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+      status: (d.status || 'available') as any,
+      donorName: d.donator?.business_name || 'Unknown Donator',
+      location: d.donator?.address || 'Unknown Location',
+      createdAt: d.created_at || '',
+      pickupWindow: d.pickup_window || 'Today',
+      instructions: d.instructions || '',
       lat: d.lat || 31.224,
       lng: d.lng || 75.771,
     }));
@@ -181,71 +279,75 @@ export const api = {
     const { data, error } = await supabase.from('donations').insert({
       donator_id: donatorId,
       title: item.title,
-      description: item.description,
-      category: item.category,
-      total_quantity: item.availableQuantity,
-      available_quantity: item.availableQuantity,
-      image_url: item.imageUrl,
-      pickup_window: item.pickupWindow,
-      instructions: item.instructions,
-      lat: item.lat,
-      lng: item.lng,
-      status: 'available'
+      description: item.description || 'Fresh surplus food ready for pickup.',
+      category: item.category || 'Bakery',
+      total_quantity: item.availableQuantity || 10,
+      available_quantity: item.availableQuantity || 10,
+      image_url: item.imageUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+      pickup_window: item.pickupWindow || 'Today',
+      instructions: item.instructions || '',
+      lat: item.lat || 31.224,
+      lng: item.lng || 75.771,
+      status: 'available',
     }).select('*, donator:donator_id ( business_name, address )').single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('createDonation error:', error);
+      throw error;
+    }
 
     return {
       id: data.id,
-      title: data.title,
-      description: data.description,
-      category: data.category,
-      totalQuantity: data.total_quantity,
-      availableQuantity: data.available_quantity,
+      title: data.title || '',
+      description: data.description || '',
+      category: data.category || 'Bakery',
+      totalQuantity: data.total_quantity || 0,
+      availableQuantity: data.available_quantity || 0,
       expiresText: 'Expires soon',
       hoursLeft: 4,
-      imageUrl: data.image_url,
-      status: data.status ? data.status.toLowerCase() as any : 'available',
-      donorName: data.donator?.business_name,
-      location: data.donator?.address,
-      createdAt: data.created_at,
-      pickupWindow: data.pickup_window,
-      instructions: data.instructions,
-      lat: data.lat,
-      lng: data.lng,
+      imageUrl: data.image_url || '',
+      status: 'available',
+      donorName: data.donator?.business_name || '',
+      location: data.donator?.address || '',
+      createdAt: data.created_at || '',
+      pickupWindow: data.pickup_window || '',
+      instructions: data.instructions || '',
+      lat: data.lat || 31.224,
+      lng: data.lng || 75.771,
     };
   },
 
   async claimDonation(donationId: string, rescuerId: string, claimQuantity: number): Promise<any> {
-    // 1. Insert into claims (this will trigger process_donation_claim in DB to reduce quantity)
+    // Insert into claims
     const { data, error } = await supabase.from('claims').insert({
       donation_id: donationId,
       rescuer_id: rescuerId,
       claimed_quantity: claimQuantity,
-      status: 'pending'
+      status: 'pending',
     }).select().single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('claimDonation: insert claim error', error);
+      throw error;
+    }
 
-    // 2. Fetch the updated donation to return to UI
-    const { data: donData, error: donError } = await supabase
+    // Manually reduce available_quantity and update status
+    const { data: donData, error: fetchError } = await supabase
       .from('donations')
-      .select('*, donator:donator_id ( business_name, address )')
+      .select('available_quantity')
       .eq('id', donationId)
       .single();
-      
-    if (donError) throw donError;
 
-    return {
-      id: donData.id,
-      title: donData.title,
-      description: donData.description,
-      category: donData.category,
-      totalQuantity: donData.total_quantity,
-      availableQuantity: donData.available_quantity,
-      status: donData.status ? donData.status.toLowerCase() : 'claimed',
-      donorName: donData.donator?.business_name,
-      location: donData.donator?.address,
-    };
-  }
+    if (!fetchError && donData) {
+      const newQty = Math.max(0, (donData.available_quantity || 0) - claimQuantity);
+      const newStatus = newQty === 0 ? 'claimed' : 'available';
+
+      await supabase
+        .from('donations')
+        .update({ available_quantity: newQty, status: newStatus })
+        .eq('id', donationId);
+    }
+
+    return data;
+  },
 };

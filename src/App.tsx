@@ -62,24 +62,32 @@ export default function App() {
       const p = await api.getUserProfile(uid);
       setProfile(p);
       setIsAuthenticated(true);
-      
+
+      // Fetch data in parallel, but don't let any single failure kill the whole app
       const [avail, hist, dons] = await Promise.all([
-        api.getAvailableDonations(),
-        api.getHistoryDonations(p.role === 'DONATOR' ? uid : undefined),
-        api.getDonators(),
+        api.getAvailableDonations().catch(() => []),
+        api.getHistoryDonations(p.role === 'donate' ? uid : undefined).catch(() => []),
+        api.getDonators().catch(() => []),
       ]);
       setDonations(avail);
       setHistoryDonations(hist);
       setDonators(dons);
 
-      if (p.role !== 'UNASSIGNED') {
+      // Check the raw DB role to determine navigation
+      // p.role is already mapped to 'donate' | 'rescue' by getUserProfile
+      const isUnassigned = p.role === 'donate' && !p.isOnboarded && p.organizationName === '';
+
+      // Check if user has actually selected a role in the DB
+      const { data: rawUser } = await supabase.from('users').select('role').eq('id', uid).maybeSingle();
+      const dbRole = rawUser?.role;
+
+      if (dbRole && dbRole !== 'UNASSIGNED') {
         setHasSelectedRole(true);
-        setUserRole(p.role === 'DONATOR' ? 'donate' : 'rescue');
-        
-        // Auto-redirect if we just landed on the site (e.g. from OAuth redirect)
+        setUserRole(dbRole === 'DONATOR' ? 'donate' : 'rescue');
+
         setCurrentScreen(prev => {
           if (['landing', 'login', 'signup'].includes(prev)) {
-            if (p.role === 'RESCUER') return 'rescuer_map';
+            if (dbRole === 'RESCUER') return 'rescuer_map';
             return p.isOnboarded ? 'dashboard' : 'donator_onboarding';
           }
           return prev;
@@ -93,7 +101,10 @@ export default function App() {
         });
       }
     } catch (err) {
-      console.error("Failed to load user data:", err);
+      console.error("refreshData failed:", err);
+      // Even on total failure, at least let the user see something
+      setIsAuthenticated(true);
+      setCurrentScreen('role_selection');
     }
   };
 
@@ -110,10 +121,16 @@ export default function App() {
 
   const handleRoleSelection = async (role: UserRole) => {
     setUserRole(role);
-    if (sessionUser && profile) {
+    if (sessionUser) {
       const dbRole = role === 'donate' ? 'DONATOR' : 'RESCUER';
-      await supabase.from('users').update({ role: dbRole }).eq('id', sessionUser.id);
-      setProfile({ ...profile, role: role });
+      try {
+        await supabase.from('users').update({ role: dbRole }).eq('id', sessionUser.id);
+      } catch (err) {
+        console.error('handleRoleSelection: failed to update role', err);
+      }
+      if (profile) {
+        setProfile({ ...profile, role: role });
+      }
     }
   };
 
@@ -194,9 +211,15 @@ export default function App() {
 
   const handleOnboardingComplete = async (onboardingData: Partial<DonatorProfile>) => {
     if (!profile) return;
-    await api.onboardDonator(profile.id, onboardingData);
-    await refreshData(profile.id);
-    setCurrentScreen('dashboard');
+    try {
+      await api.onboardDonator(profile.id, onboardingData);
+      await refreshData(profile.id);
+      setCurrentScreen('dashboard');
+    } catch (err) {
+      console.error('handleOnboardingComplete failed:', err);
+      // Still try to navigate — refreshData may have partially succeeded
+      await refreshData(profile.id);
+    }
   };
 
   const handleLogout = async () => {
