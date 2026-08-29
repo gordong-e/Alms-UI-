@@ -88,6 +88,7 @@ export const api = {
       storeAvatarUrl: donatorData?.avatar_url || '',
       organizationName: donatorData?.business_name || userData.name || '',
       verified: true,
+      personaVerified: !!userData.persona_verified,
       memberSince: userData.created_at ? new Date(userData.created_at).toLocaleDateString() : 'Recently',
       mealsDonated: donatorData?.meals_donated || 0,
       kgSaved: donatorData?.kg_saved || 0,
@@ -106,6 +107,18 @@ export const api = {
       _dbRole: userData.role,
     };
     return result;
+  },
+
+  async markPersonaVerified(userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('users')
+      .update({ persona_verified: true })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('markPersonaVerified error:', error);
+      throw error;
+    }
   },
 
   async updateDonatorProfile(userId: string, updates: Partial<DonatorProfile>): Promise<void> {

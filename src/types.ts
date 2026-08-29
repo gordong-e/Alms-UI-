@@ -60,6 +60,7 @@ export interface UserProfile {
   storeAvatarUrl: string; // We can derive this if they have a donator profile
   organizationName: string; // Equivalent to businessName
   verified: boolean;
+  personaVerified: boolean;
   memberSince: string; // derived from created_at
   mealsDonated: number;
   kgSaved: number; // for donator role

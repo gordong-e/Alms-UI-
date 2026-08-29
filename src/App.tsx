@@ -17,6 +17,7 @@ import { RescuerMapScreen } from './components/RescuerMapScreen';
 import { CreateListingModal } from './components/CreateListingModal';
 import { ListingDetailsModal } from './components/ListingDetailsModal';
 import { ClaimModal } from './components/ClaimModal';
+import { PersonaVerification } from './components/PersonaVerification';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -112,6 +113,7 @@ export default function App() {
       setCurrentScreen('role_selection');
     }
   };
+  const [showPersona, setShowPersona] = useState(false);
 
   useEffect(() => {
     if (sessionUser) {
@@ -135,6 +137,10 @@ export default function App() {
       }
       if (profile) {
         setProfile({ ...profile, role: role });
+        
+        if (role === 'rescue' && !profile.personaVerified) {
+          setShowPersona(true);
+        }
       }
     }
   };
@@ -198,7 +204,20 @@ export default function App() {
   };
 
   const handleClaimRescue = (item: DonationItem) => {
+    if (profile && !profile.personaVerified) {
+      setShowPersona(true);
+      return;
+    }
     handleConfirmClaim(item, item.availableQuantity);
+  };
+
+  const handleOpenCreate = () => {
+    if (profile && !profile.personaVerified) {
+      setShowPersona(true);
+      return;
+    }
+    setEditingItem(null);
+    setIsCreateOpen(true);
   };
 
   const handleAuthSuccess = (name: string, email: string) => {
@@ -215,15 +234,20 @@ export default function App() {
   };
 
   const handleOnboardingComplete = async (onboardingData: Partial<DonatorProfile>) => {
-    if (!profile) return;
     try {
-      await api.onboardDonator(profile.id, onboardingData);
-      await refreshData(profile.id);
+      await api.onboardDonator(profile!.id, onboardingData);
+      const p = await api.getUserProfile(sessionUser.id);
+      setProfile(p);
+      setHasSelectedRole(true);
       setCurrentScreen('dashboard');
+
+      if (!p.personaVerified) {
+        setShowPersona(true);
+      }
     } catch (err) {
       console.error('handleOnboardingComplete failed:', err);
       // Still try to navigate — refreshData may have partially succeeded
-      await refreshData(profile.id);
+      await refreshData(profile!.id);
     }
   };
 
@@ -340,10 +364,7 @@ export default function App() {
                 <DonatorDashboard
                   profile={profile}
                   donations={donations}
-                  onOpenCreate={() => {
-                    setEditingItem(null);
-                    setIsCreateOpen(true);
-                  }}
+                  onOpenCreate={handleOpenCreate}
                   onEditListing={handleEditListing}
                   onViewDetails={handleViewDetails}
                   onNavigate={handleNavigate}
@@ -354,10 +375,7 @@ export default function App() {
                 <DonationsScreen
                   activeDonations={donations}
                   historyDonations={historyDonations}
-                  onOpenCreate={() => {
-                    setEditingItem(null);
-                    setIsCreateOpen(true);
-                  }}
+                  onOpenCreate={handleOpenCreate}
                   onEditListing={handleEditListing}
                   onViewDetails={handleViewDetails}
                 />
@@ -398,10 +416,7 @@ export default function App() {
             currentScreen={currentScreen}
             userRole={userRole}
             onNavigate={handleNavigate}
-            onOpenCreate={() => {
-              setEditingItem(null);
-              setIsCreateOpen(true);
-            }}
+            onOpenCreate={handleOpenCreate}
             variant={getBottomNavVariant()}
           />
         )}
@@ -436,8 +451,20 @@ export default function App() {
           setIsClaimOpen(false);
           setSelectedItem(null);
         }}
-        item={selectedItem}
+        item={selectedItem!}
         onConfirmClaim={handleConfirmClaim}
+      />
+
+      <PersonaVerification 
+        isOpen={showPersona}
+        onClose={() => setShowPersona(false)}
+        onComplete={() => {
+          setShowPersona(false);
+          if (profile) {
+            setProfile({ ...profile, personaVerified: true });
+          }
+        }}
+        profile={profile}
       />
     </div>
     </>
