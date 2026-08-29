@@ -22,19 +22,19 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
   const activeListings = donations.filter((d) => d.status === 'available');
 
   return (
-    <div className="px-4 sm:px-6 max-w-lg mx-auto space-y-4 pb-28 pt-2">
+    <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-4 lg:space-y-6 pb-28 pt-2">
       {/* Hero Greeting Card */}
-      <section className="bg-[#0a3c1a] text-white rounded-3xl p-6 sm:p-7 shadow-lg relative overflow-hidden">
+      <section className="bg-[#0a3c1a] text-white rounded-3xl p-6 sm:p-7 lg:p-10 shadow-lg relative overflow-hidden">
         <div className="relative z-10">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 tracking-tight">
             Good morning, {profile.name.split(' ')[0]}.
           </h1>
-          <p className="text-white/80 text-sm leading-relaxed mb-6 max-w-xs">
+          <p className="text-white/80 text-sm lg:text-base leading-relaxed mb-6 max-w-md">
             Your food rescues are making a real difference in the local community today.
           </p>
           <button
             onClick={onOpenCreate}
-            className="bg-[#b9f02c] hover:bg-[#c9fb40] text-[#0a3c1a] font-bold text-sm py-3 px-5 rounded-full inline-flex items-center gap-2 shadow-sm active:scale-95 transition-all"
+            className="bg-[#b9f02c] hover:bg-[#c9fb40] text-[#0a3c1a] font-bold text-sm lg:text-base py-3 px-5 lg:py-3.5 lg:px-7 rounded-full inline-flex items-center gap-2 shadow-sm active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             New Listing
@@ -42,19 +42,19 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
         </div>
       </section>
 
-      {/* Stats Section */}
-      <div className="space-y-3">
+      {/* Stats Section — side by side on desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
         {/* Total Impact Card */}
         <div 
           onClick={() => onNavigate('impact')}
-          className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100/80 flex items-center justify-between cursor-pointer hover:border-gray-200 transition-colors"
+          className="bg-white rounded-3xl p-5 lg:p-6 shadow-sm border border-gray-100/80 flex items-center justify-between cursor-pointer hover:border-gray-200 transition-colors"
         >
           <div>
             <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">
               TOTAL IMPACT
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-3xl font-bold text-[#0a3c1a]">
+              <span className="text-3xl lg:text-4xl font-bold text-[#0a3c1a]">
                 120
               </span>
               <span className="text-gray-500 text-sm font-medium">meals</span>
@@ -68,13 +68,13 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
         {/* Current Status Card */}
         <div 
           onClick={() => onNavigate('profile')}
-          className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100/80 flex items-center justify-between cursor-pointer hover:border-gray-200 transition-colors"
+          className="bg-white rounded-3xl p-5 lg:p-6 shadow-sm border border-gray-100/80 flex items-center justify-between cursor-pointer hover:border-gray-200 transition-colors"
         >
           <div>
             <span className="text-[11px] font-bold tracking-wider text-gray-400 uppercase">
               CURRENT STATUS
             </span>
-            <div className="text-xl font-bold text-[#0a3c1a] mt-0.5">
+            <div className="text-xl lg:text-2xl font-bold text-[#0a3c1a] mt-0.5">
               Silver Badge
             </div>
           </div>
@@ -87,10 +87,10 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
       {/* Active Listings Section */}
       <section className="pt-2 space-y-4">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xl font-bold text-[#0a3c1a] tracking-tight">Active Listings</h2>
+          <h2 className="text-xl lg:text-2xl font-bold text-[#0a3c1a] tracking-tight">Active Listings</h2>
           <button
             onClick={() => onNavigate('donations')}
-            className="text-xs font-semibold text-gray-500 hover:text-[#0a3c1a] transition-colors"
+            className="text-xs lg:text-sm font-semibold text-gray-500 hover:text-[#0a3c1a] transition-colors"
           >
             View all
           </button>
@@ -107,7 +107,7 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
             {activeListings.map((item) => (
               <article
                 key={item.id}

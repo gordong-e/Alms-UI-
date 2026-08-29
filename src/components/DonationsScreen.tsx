@@ -22,10 +22,10 @@ export const DonationsScreen: React.FC<DonationsScreenProps> = ({
   const displayList = activeTab === 'active' ? activeDonations : historyDonations;
 
   return (
-    <div className="px-4 sm:px-6 max-w-lg mx-auto space-y-5 pb-32 pt-2">
+    <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-5 pb-32 pt-2">
       {/* Screen Title & Subtitle */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#0a3c1a] tracking-tight mb-1">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0a3c1a] tracking-tight mb-1">
           My Donations
         </h1>
         <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
@@ -57,10 +57,10 @@ export const DonationsScreen: React.FC<DonationsScreenProps> = ({
         </button>
       </div>
 
-      {/* Cards List */}
-      <div className="space-y-4">
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
         {displayList.length === 0 ? (
-          <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-sm">
+          <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 shadow-sm col-span-full">
             <p className="text-sm text-gray-500 mb-4">
               {activeTab === 'active'
                 ? 'No active surplus listings right now.'
@@ -71,8 +71,8 @@ export const DonationsScreen: React.FC<DonationsScreenProps> = ({
                 onClick={onOpenCreate}
                 className="bg-[#0a3c1a] text-white text-xs font-bold py-3 px-6 rounded-full inline-flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" />
-                Post Food Surplus
+              <Plus className="w-4 h-4" />
+              Post Food Surplus
               </button>
             )}
           </div>

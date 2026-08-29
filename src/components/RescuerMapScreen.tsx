@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MapPin, Navigation, Clock, Utensils, Search, List, Map as MapIcon, Filter, ChevronRight, X } from 'lucide-react';
+import { MapPin, Navigation, Clock, Utensils, Search, List, Map as MapIcon, ChevronRight, X } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { DonationItem } from '../types';
@@ -37,10 +37,14 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const routeLayerRef = useRef<L.GeoJSON | null>(null);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{distance: string, duration: string} | null>(null);
+
+  const USER_LOCATION = { lat: 31.2200, lng: 75.7700 }; // Mock user location in Phagwara
 
   const availableDonations = donations.filter((d) => d.status === 'available');
 
@@ -53,7 +57,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     return matchesCat && matchesSearch;
   });
 
-  // Sort by distance (mocked via parsing distance string)
+  // Sort by distance
   const sorted = [...filtered].sort((a, b) => {
     const distA = parseFloat(a.distance?.replace(/[^\d.]/g, '') || '999');
     const distB = parseFloat(b.distance?.replace(/[^\d.]/g, '') || '999');
@@ -67,16 +71,29 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false,
-    }).setView([37.7880, -122.4020], 14);
+    }).setView([31.2240, 75.7708], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
     }).addTo(map);
 
-    // Add zoom control to bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+    // Add User Location Marker
+    const userIcon = L.divIcon({
+      html: `<div style="width: 18px; height: 18px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+      className: '',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+    L.marker([USER_LOCATION.lat, USER_LOCATION.lng], { icon: userIcon })
+      .bindTooltip('Your Location', { direction: 'top', offset: [0, -10] })
+      .addTo(map);
+
     mapRef.current = map;
+
+    // Invalidate size after render to handle flex containers
+    setTimeout(() => map.invalidateSize(), 100);
 
     return () => {
       map.remove();
@@ -90,14 +107,12 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
 
     const map = mapRef.current;
 
-    // Remove existing markers
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker) {
         map.removeLayer(layer);
       }
     });
 
-    // Add markers for filtered donations
     sorted.forEach((item) => {
       const marker = L.marker([item.lat, item.lng], {
         icon: createMarkerIcon(item.mealsCount),
@@ -105,37 +120,131 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
 
       marker.on('click', () => {
         setHighlightedId(item.id);
-        // Scroll the list card into view
         const el = document.getElementById(`donation-card-${item.id}`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     });
 
-    // Fit bounds if there are markers
-    if (sorted.length > 0) {
+    if (sorted.length > 0 && !highlightedId) {
       const bounds = L.latLngBounds(sorted.map((d) => [d.lat, d.lng] as [number, number]));
+      bounds.extend([USER_LOCATION.lat, USER_LOCATION.lng]);
       map.fitBounds(bounds.pad(0.3));
     }
-  }, [sorted, viewMode]);
+  }, [sorted, viewMode, highlightedId]);
+
+  // Fetch and draw route when a donation is highlighted
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    if (routeLayerRef.current) {
+      mapRef.current.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = null;
+    }
+    setRouteInfo(null);
+
+    if (!highlightedId) return;
+
+    const item = donations.find((d) => d.id === highlightedId);
+    if (!item) return;
+
+    fetch(`https://router.project-osrm.org/route/v1/driving/${USER_LOCATION.lng},${USER_LOCATION.lat};${item.lng},${item.lat}?overview=full&geometries=geojson`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.routes && data.routes[0]) {
+          const route = data.routes[0];
+          const distKm = (route.distance / 1000).toFixed(1);
+          const durationMins = Math.round(route.duration / 60);
+          setRouteInfo({ distance: `${distKm} km`, duration: `${durationMins} min` });
+
+          routeLayerRef.current = L.geoJSON(route.geometry, {
+            style: {
+              color: '#0a3c1a',
+              weight: 5,
+              opacity: 0.8,
+              dashArray: '8, 8',
+              lineCap: 'round',
+              lineJoin: 'round',
+            }
+          }).addTo(mapRef.current!);
+
+          const bounds = L.latLngBounds([
+            [USER_LOCATION.lat, USER_LOCATION.lng],
+            [item.lat, item.lng]
+          ]);
+          mapRef.current.fitBounds(bounds.pad(0.2));
+        }
+      })
+      .catch((err) => console.error('OSRM routing error:', err));
+  }, [highlightedId, donations]);
+
+  // Resize map on window resize (for responsive layout changes)
+  useEffect(() => {
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const DonationCard: React.FC<{ item: DonationItem; compact?: boolean }> = ({ item, compact = false }) => (
+    <div
+      id={`donation-card-${item.id}`}
+      onClick={() => onSelectDonation(item)}
+      className={`bg-white rounded-2xl shadow-sm border transition-all cursor-pointer active:scale-[0.99] flex gap-3 ${
+        compact ? 'p-3' : 'p-3.5'
+      } ${
+        highlightedId === item.id
+          ? 'border-[#b9f02c] ring-2 ring-[#b9f02c]/30 shadow-md'
+          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
+      }`}
+    >
+      <div className={`rounded-xl overflow-hidden bg-gray-100 shrink-0 ${compact ? 'w-16 h-16' : 'w-20 h-20'}`}>
+        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-1">
+          <h3 className="font-bold text-sm text-[#0a3c1a] truncate">{item.title}</h3>
+          <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+        </div>
+        <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+          <MapPin className="w-3 h-3 text-gray-400" />
+          {item.donorName}
+        </p>
+        <div className="flex items-center gap-3 mt-2">
+          <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-[10px] px-2 py-0.5 rounded-full">
+            ~{item.mealsCount} meals
+          </span>
+          <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium">
+            <Navigation className="w-3 h-3" />
+            {highlightedId === item.id && routeInfo ? routeInfo.distance : item.distance || '—'}
+          </span>
+          <span className="text-[10px] text-red-500 flex items-center gap-1 font-semibold">
+            <Clock className="w-3 h-3" />
+            {highlightedId === item.id && routeInfo ? `${routeInfo.duration} drive` : item.expiresText}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] relative">
+    <div className="flex flex-col h-[calc(100vh-140px)] lg:h-[calc(100vh-80px)] relative">
       {/* Search + Filters bar */}
-      <div className="px-4 pt-2 pb-3 space-y-3 bg-[#fdfaf5] z-10 border-b border-gray-100">
+      <div className="px-4 lg:px-6 pt-2 pb-3 space-y-3 bg-[#fdfaf5] z-10 border-b border-gray-100">
         {/* Title row */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[#0a3c1a] tracking-tight">Nearby Donations</h1>
-            <p className="text-[11px] text-gray-500">{sorted.length} available near you</p>
+            <h1 className="text-xl lg:text-2xl font-bold text-[#0a3c1a] tracking-tight">Nearby Donations</h1>
+            <p className="text-[11px] lg:text-xs text-gray-500">{sorted.length} available near you</p>
           </div>
-          {/* View toggle */}
-          <div className="flex items-center bg-[#f0ece1] p-1 rounded-xl">
+          {/* View toggle — only show on mobile, desktop always shows side-by-side */}
+          <div className="flex items-center bg-[#f0ece1] p-1 rounded-xl lg:hidden">
             <button
               onClick={() => setViewMode('map')}
               className={`p-2 rounded-lg transition-all ${
-                viewMode === 'map'
-                  ? 'bg-white text-[#0a3c1a] shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
+                viewMode === 'map' ? 'bg-white text-[#0a3c1a] shadow-sm' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <MapIcon className="w-4 h-4" />
@@ -143,9 +252,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg transition-all ${
-                viewMode === 'list'
-                  ? 'bg-white text-[#0a3c1a] shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
+                viewMode === 'list' ? 'bg-white text-[#0a3c1a] shadow-sm' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <List className="w-4 h-4" />
@@ -154,7 +261,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative max-w-xl">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
           <input
             type="text"
@@ -164,10 +271,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
             className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 text-xs focus:border-[#0a3c1a] outline-none shadow-sm"
           />
           {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-            >
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -191,76 +295,42 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
         </div>
       </div>
 
-      {viewMode === 'map' ? (
-        /* Map + Bottom card list */
-        <div className="flex-1 flex flex-col relative">
-          {/* Map container */}
-          <div ref={mapContainerRef} className="flex-1 min-h-[280px]" />
+      {/* === Responsive Map & List Container === */}
+      <div className="flex flex-1 flex-col lg:flex-row min-h-0 relative">
+        {/* Map Container (Always visible on desktop, toggled on mobile) */}
+        <div
+          ref={mapContainerRef}
+          className={`${viewMode === 'list' ? 'hidden lg:block' : 'block'} flex-1 lg:flex-[3] min-h-[280px] lg:min-h-0 z-0`}
+        />
 
-          {/* Scrollable donation cards overlay at bottom */}
-          <div className="bg-[#fdfaf5] border-t border-gray-200 max-h-[45%] overflow-y-auto">
-            <div className="px-4 py-3 space-y-3">
-              {sorted.length === 0 ? (
-                <div className="text-center py-6 text-sm text-gray-500">
-                  No donations found matching your criteria.
-                </div>
-              ) : (
-                sorted.map((item) => (
-                  <div
-                    key={item.id}
-                    id={`donation-card-${item.id}`}
-                    onClick={() => onSelectDonation(item)}
-                    className={`bg-white rounded-2xl p-3.5 shadow-sm border transition-all cursor-pointer active:scale-[0.99] flex gap-3 ${
-                      highlightedId === item.id
-                        ? 'border-[#b9f02c] ring-2 ring-[#b9f02c]/30 shadow-md'
-                        : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
-                    }`}
-                  >
-                    {/* Thumbnail */}
-                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-1">
-                        <h3 className="font-bold text-sm text-[#0a3c1a] truncate">{item.title}</h3>
-                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                      </div>
-                      <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-gray-400" />
-                        {item.donorName}
-                      </p>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-[10px] px-2 py-0.5 rounded-full">
-                          ~{item.mealsCount} meals
-                        </span>
-                        <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium">
-                          <Navigation className="w-3 h-3" />
-                          {item.distance || '—'}
-                        </span>
-                        <span className="text-[10px] text-red-500 flex items-center gap-1 font-semibold">
-                          <Clock className="w-3 h-3" />
-                          {item.expiresText}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+        {/* Small Cards Panel (Desktop side panel OR Mobile bottom panel) */}
+        <div
+          className={`${
+            viewMode === 'list' ? 'hidden lg:flex' : 'flex'
+          } flex-col flex-1 lg:flex-[2] max-h-[45%] lg:max-h-full border-t lg:border-t-0 lg:border-l border-gray-200 bg-[#fdfaf5] z-10`}
+        >
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <p className="hidden lg:block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              {sorted.length} donation{sorted.length !== 1 ? 's' : ''} nearby
+            </p>
+            {sorted.length === 0 ? (
+              <div className="text-center py-6 lg:py-8 text-sm text-gray-500">
+                No donations found matching your criteria.
+              </div>
+            ) : (
+              sorted.map((item) => <DonationCard key={item.id} item={item} compact={true} />)
+            )}
           </div>
         </div>
-      ) : (
-        /* List View */
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 pb-28">
+
+        {/* Large Cards Panel (Mobile List View Only) */}
+        <div
+          className={`${
+            viewMode === 'map' ? 'hidden' : 'block lg:hidden'
+          } flex-1 overflow-y-auto px-4 py-3 space-y-4 pb-28 bg-[#edece8]`}
+        >
           {sorted.length === 0 ? (
-            <div className="bg-white rounded-3xl p-8 text-center border border-gray-100">
+            <div className="bg-white rounded-3xl p-8 text-center border border-gray-100 mt-4">
               <p className="text-sm text-gray-500">No donations found matching your filters.</p>
             </div>
           ) : (
@@ -271,12 +341,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
                 onClick={() => onSelectDonation(item)}
               >
                 <div className="relative h-40 w-full bg-gray-100">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
+                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   <div className="absolute top-3 left-3 bg-[#b9f02c] text-[#0a3c1a] font-bold text-xs px-2.5 py-1 rounded-full shadow-sm">
                     {item.category}
                   </div>
@@ -319,7 +384,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
             ))
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

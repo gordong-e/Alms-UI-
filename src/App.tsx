@@ -164,7 +164,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#edece8] text-[#191c19] flex flex-col items-center">
       {/* Main Container */}
-      <div className="w-full flex-1 max-w-md bg-[#fdfaf5] min-h-screen shadow-md transition-all">
+      <div className="w-full flex-1 bg-[#fdfaf5] min-h-screen shadow-md transition-all">
         {/* App Header */}
         {showHeader && (
           <Header

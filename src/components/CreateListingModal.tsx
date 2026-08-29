@@ -72,7 +72,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200 overflow-hidden">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200 overflow-hidden">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-[#fdfaf5]">
           <div>
@@ -92,156 +92,165 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1 text-sm">
-          {/* Category Tabs */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">
-              Food Category
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {(['Bakery', 'Produce', 'Cooked Meals', 'Dairy & Deli', 'Pantry'] as const).map((cat) => (
-                <button
-                  type="button"
-                  key={cat}
-                  onClick={() => setCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                    category === cat
-                      ? 'bg-[#0a3c1a] text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 text-sm flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Left Column */}
+            <div className="space-y-5">
+              {/* Category Tabs */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Food Category
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {(['Bakery', 'Produce', 'Cooked Meals', 'Dairy & Deli', 'Pantry'] as const).map((cat) => (
+                    <button
+                      type="button"
+                      key={cat}
+                      onClick={() => setCategory(cat)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        category === cat
+                          ? 'bg-[#0a3c1a] text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Title */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              Listing Title
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Surplus Sourdough Loaves & Croissants"
-              className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              Description / Contents
-            </label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. 10 sourdough loaves, 8 baguettes baked this morning. Packaged in sanitized bakery crates."
-              className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none"
-            />
-          </div>
-
-          {/* Meal Count & Expiration Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Estimated Meals (~qty)
-              </label>
-              <div className="relative">
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Listing Title
+                </label>
                 <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={mealsCount}
-                  onChange={(e) => setMealsCount(Number(e.target.value))}
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Surplus Sourdough Loaves & Croissants"
                   className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none"
                 />
-                <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-semibold">
-                  meals
-                </span>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Description / Contents
+                </label>
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g. 10 sourdough loaves, 8 baguettes baked this morning. Packaged in sanitized bakery crates."
+                  className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none"
+                />
+              </div>
+
+              {/* Meal Count & Expiration Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Estimated Meals (~qty)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={mealsCount}
+                      onChange={(e) => setMealsCount(Number(e.target.value))}
+                      className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none"
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-semibold">
+                      meals
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Expires In (Hours)
+                  </label>
+                  <select
+                    value={hoursLeft}
+                    onChange={(e) => setHoursLeft(Number(e.target.value))}
+                    className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none text-xs"
+                  >
+                    <option value={2}>2 hours (Urgent)</option>
+                    <option value={4}>4 hours (Recommended)</option>
+                    <option value={8}>8 hours (End of day)</option>
+                    <option value={12}>12 hours</option>
+                    <option value={24}>24 hours (Next morning)</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Expires In (Hours)
-              </label>
-              <select
-                value={hoursLeft}
-                onChange={(e) => setHoursLeft(Number(e.target.value))}
-                className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none text-xs"
-              >
-                <option value={2}>2 hours (Urgent)</option>
-                <option value={4}>4 hours (Recommended)</option>
-                <option value={8}>8 hours (End of day)</option>
-                <option value={12}>12 hours</option>
-                <option value={24}>24 hours (Next morning)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Image Selection */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
-              <span>Select Food Photo</span>
-              <span className="text-[11px] text-gray-400 font-normal">Click to choose image</span>
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {PRESET_IMAGES.map((img, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedImage(img.url)}
-                  className={`relative rounded-xl overflow-hidden h-18 cursor-pointer border-2 transition-all ${
-                    selectedImage === img.url
-                      ? 'border-[#0a3c1a] ring-2 ring-[#b9f02c]'
-                      : 'border-transparent opacity-80 hover:opacity-100'
-                  }`}
-                >
-                  <img
-                    src={img.url}
-                    alt={img.label}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                  {selectedImage === img.url && (
-                    <div className="absolute inset-0 bg-[#0a3c1a]/30 flex items-center justify-center">
-                      <div className="w-5 h-5 rounded-full bg-[#b9f02c] text-[#0a3c1a] flex items-center justify-center">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </div>
+            {/* Right Column */}
+            <div className="space-y-5">
+              {/* Image Selection */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center justify-between">
+                  <span>Select Food Photo</span>
+                  <span className="text-[11px] text-gray-400 font-normal">Click to choose image</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PRESET_IMAGES.map((img, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedImage(img.url)}
+                      className={`relative rounded-xl overflow-hidden h-20 cursor-pointer border-2 transition-all ${
+                        selectedImage === img.url
+                          ? 'border-[#0a3c1a] ring-2 ring-[#b9f02c]'
+                          : 'border-transparent opacity-80 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.label}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      {selectedImage === img.url && (
+                        <div className="absolute inset-0 bg-[#0a3c1a]/30 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-[#b9f02c] text-[#0a3c1a] flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* Pickup Window */}
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">
-              Pickup Time Window &amp; Instructions
-            </label>
-            <input
-              type="text"
-              value={pickupWindow}
-              onChange={(e) => setPickupWindow(e.target.value)}
-              placeholder="e.g. Today between 1:00 PM - 4:00 PM"
-              className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none text-xs mb-2"
-            />
-            <input
-              type="text"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Special instructions for rescuer/driver"
-              className="w-full rounded-xl px-3.5 py-2 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none text-xs"
-            />
+              {/* Pickup Window */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Pickup Time Window &amp; Instructions
+                </label>
+                <input
+                  type="text"
+                  value={pickupWindow}
+                  onChange={(e) => setPickupWindow(e.target.value)}
+                  placeholder="e.g. Today between 1:00 PM - 4:00 PM"
+                  className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none text-xs mb-3"
+                />
+                <textarea
+                  rows={3}
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="Special instructions for rescuer/driver (e.g. Call upon arrival, access via alleyway...)"
+                  className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none text-xs"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Submit Button */}
-          <div className="pt-2">
+          <div className="pt-6 mt-auto">
             <button
               type="submit"
               className="w-full bg-[#0a3c1a] hover:bg-[#124d23] text-white font-bold py-3.5 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"

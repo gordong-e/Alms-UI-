@@ -14,12 +14,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onEditProfile,
 }) => {
   return (
-    <div className="px-4 sm:px-6 max-w-lg mx-auto space-y-6 pb-32 pt-2">
+    <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-6 pb-32 pt-2">
       {/* Profile Header Block */}
       <div className="flex flex-col items-center text-center">
         {/* Storefront / Donator Circular Image */}
         <div className="relative mb-4">
-          <div className="w-28 h-28 rounded-full p-1 bg-white shadow-md">
+          <div className="w-28 h-28 lg:w-32 lg:h-32 rounded-full p-1 bg-white shadow-md">
             <img
               src={profile.storeAvatarUrl}
               alt={profile.organizationName}
@@ -31,7 +31,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
         {/* Organization Name with Verified Check */}
         <div className="flex items-center justify-center gap-1.5 mb-1">
-          <h1 className="text-2xl font-extrabold text-[#0a3c1a] tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-extrabold text-[#0a3c1a] tracking-tight">
             {profile.organizationName}
           </h1>
           <span className="w-5 h-5 rounded-full bg-[#84cc16] text-white flex items-center justify-center text-xs shadow-sm">
@@ -74,15 +74,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </div>
       </div>
 
-      {/* Impact Stat Cards */}
-      <div className="space-y-4">
+      {/* Impact Stat Cards — side by side on desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Meals Donated Card */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative overflow-hidden flex flex-col items-center justify-center text-center">
-          {/* Subtle fork watermark on right */}
           <div className="absolute -right-2 inset-y-0 my-auto w-24 h-28 opacity-[0.05] pointer-events-none flex items-center justify-center">
             <Utensils className="w-24 h-24 text-[#0a3c1a]" />
           </div>
-
           <div className="text-[#0a3c1a] mb-1">
             <Utensils className="w-5 h-5 stroke-[2.2] mx-auto" />
           </div>
@@ -96,11 +94,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
         {/* Food Rescued Card */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative overflow-hidden flex flex-col items-center justify-center text-center">
-          {/* Subtle leaf watermark on left */}
           <div className="absolute -left-3 inset-y-0 my-auto w-24 h-28 opacity-[0.05] pointer-events-none flex items-center justify-center">
             <Leaf className="w-24 h-24 text-[#0a3c1a]" />
           </div>
-
           <div className="text-[#0a3c1a] mb-1">
             <Leaf className="w-5 h-5 stroke-[2.2] mx-auto" />
           </div>

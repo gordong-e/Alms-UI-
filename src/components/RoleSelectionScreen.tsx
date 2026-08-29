@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Heart, Truck, Check } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -14,13 +14,13 @@ export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({
   onContinue,
 }) => {
   return (
-    <div className="bg-[#f9f9f8] text-[#0a2510] min-h-screen flex flex-col justify-between pt-12 pb-8 px-6 antialiased max-w-md mx-auto">
+    <div className="bg-[#f9f9f8] text-[#0a2510] min-h-screen flex flex-col justify-between pt-12 pb-8 px-6 antialiased max-w-lg mx-auto">
       {/* Header Section */}
       <header className="text-center mb-8 flex-shrink-0" data-purpose="screen-header">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-3 leading-tight tracking-tight text-[#0a2510]">
-          How will you use<br />NourishResq?
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 leading-tight tracking-tight text-[#0a2510]">
+          How will you use<br />Alms?
         </h1>
-        <p className="text-sm text-gray-600 px-4 leading-relaxed">
+        <p className="text-sm lg:text-base text-gray-600 px-4 leading-relaxed">
           Select your primary role to customize your experience. You can always change this later.
         </p>
       </header>
@@ -39,30 +39,16 @@ export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({
                 : 'border-transparent hover:border-gray-200'
             }`}
           >
-            {/* Icon Container */}
             <div
               className={`w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
                 selectedRole === 'donate' ? 'bg-[#bde535] text-[#0a2510]' : 'bg-[#e6e6e6] text-[#0a2510]'
               }`}
             >
-              <svg
-                className="text-[#0a2510]"
-                fill="none"
-                height="26"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                width="26"
-                xmlns="http://www.w3.org/2000/svg"
-              >
+              <svg className="text-[#0a2510]" fill="none" height="26" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="26" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                 <path d="M12 5 9.04 7.96a2.1 2.1 0 0 0 0 2.97l2.46 2.47a1 1 0 0 0 1.42 0l2.46-2.47a2.1 2.1 0 0 0 0-2.97L12 5Z" />
               </svg>
             </div>
-
-            {/* Text Content */}
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-lg mb-1 text-[#0a2510]">I want to donate food</h2>
@@ -91,24 +77,12 @@ export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({
                 : 'border-transparent hover:border-gray-200'
             }`}
           >
-            {/* Icon Container */}
             <div
               className={`w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
                 selectedRole === 'rescue' ? 'bg-[#bde535] text-[#0a2510]' : 'bg-[#e6e6e6] text-[#0a2510]'
               }`}
             >
-              <svg
-                className="text-[#0a2510]"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
+              <svg className="text-[#0a2510]" fill="none" height="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
                 <rect height="13" rx="2" width="16" x="2" y="6" />
                 <rect height="8" rx="2" width="6" x="16" y="11" />
                 <circle cx="8" cy="19" r="2" />
@@ -116,8 +90,6 @@ export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({
                 <path d="M16 11h2" />
               </svg>
             </div>
-
-            {/* Text Content */}
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <h2 className="font-bold text-lg mb-1 text-[#0a2510]">I want to rescue food</h2>

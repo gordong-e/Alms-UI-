@@ -38,21 +38,36 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f9faf4] to-[#e7e9e3] flex flex-col items-center justify-center p-4 sm:p-6 antialiased">
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-6 antialiased overflow-hidden">
+      {/* Blurred Background Image */}
+      <div 
+        className="absolute inset-0 z-0 scale-105"
+        style={{
+          backgroundImage: 'url("https://images.unsplash.com/photo-1593113565214-80afcb4a4571?q=80&w=2000&auto=format&fit=crop")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(12px) brightness(0.7)'
+        }}
+      />
+      {/* Dark overlay for contrast */}
+      <div className="absolute inset-0 z-0 bg-[#0a3c1a]/20" />
+
       {/* Back button */}
-      <div className="w-full max-w-md mb-3 flex items-center justify-between">
+      <div className="w-full max-w-md mb-4 flex items-center justify-between relative z-10">
         <button
           onClick={onBackToLanding}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-[#0a3c1a] transition-colors py-1 px-2 rounded-lg"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white transition-colors py-1.5 px-3 bg-black/20 hover:bg-black/30 backdrop-blur-sm rounded-full"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
       </div>
 
-      <div className="w-full max-w-md bg-white premium-shadow rounded-2xl p-8 sm:p-10 relative overflow-hidden border border-gray-100/50">
-        {/* Subtle decorative orb */}
-        <div className="absolute -top-20 -right-20 w-44 h-44 bg-[#ccf148] rounded-full blur-[40px] opacity-30 pointer-events-none"></div>
+      <div className="w-full max-w-md bg-white premium-shadow rounded-2xl p-8 sm:p-10 relative overflow-hidden border border-gray-100/50 z-10">
+        {/* Animated Background Orbs */}
+        <div className="absolute -top-24 -right-24 w-56 h-56 bg-[#ccf148] rounded-full blur-[50px] opacity-40 pointer-events-none animate-blob"></div>
+        <div className="absolute top-32 -left-20 w-48 h-48 bg-[#b9f02c] rounded-full blur-[50px] opacity-20 pointer-events-none animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-24 right-10 w-48 h-48 bg-[#eaf8d1] rounded-full blur-[50px] opacity-30 pointer-events-none animate-blob animation-delay-4000"></div>
 
         {/* Header / Logo Area */}
         <div className="flex flex-col items-center justify-center mb-8 relative z-10">
@@ -62,9 +77,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
               </svg>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#00250b] tracking-tight">
-              NourishResq
-            </h1>
+            <span className="font-bold text-xl text-[#0a3c1a] tracking-tight">
+              Alms
+            </span>
           </div>
           <h2 className="text-lg font-bold text-[#414941] text-center">
             {mode === 'signup' ? 'Create Account' : 'Welcome Back'}

@@ -22,10 +22,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <div className="fixed bottom-5 inset-x-0 z-40 flex items-center justify-center px-4 pointer-events-none">
-      <div className="pointer-events-auto flex items-center gap-2 max-w-md w-full justify-center">
+      <div className="pointer-events-auto flex items-center gap-2 max-w-md sm:max-w-lg w-full justify-center">
         {/* Main Floating Dark Pill Navigation Bar */}
         <nav
-          className="bg-[#142318] text-white/70 px-4 py-2.5 rounded-full flex items-center justify-around shadow-2xl border border-white/10 backdrop-blur-lg flex-1 max-w-[340px]"
+          className="bg-[#142318] text-white/70 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center justify-around shadow-2xl border border-white/10 backdrop-blur-lg flex-1 max-w-[340px] sm:max-w-[420px]"
           data-purpose="bottom-navigation"
         >
           {isDonator ? (
@@ -57,16 +57,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 <span className="text-[10px] tracking-tight">Donations</span>
               </button>
 
-              {variant === 'center-plus' && (
-                <button
-                  onClick={onOpenCreate}
-                  className="w-11 h-11 -my-2 bg-[#ccf148] hover:bg-[#d8fc56] text-[#0a3c1a] rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 hover:scale-105"
-                  aria-label="Create New Donation"
-                  title="Add New Donation"
-                >
-                  <Plus className="w-6 h-6 stroke-[3]" />
-                </button>
-              )}
+              <button
+                onClick={onOpenCreate}
+                className="w-11 h-11 -my-2 bg-[#ccf148] hover:bg-[#d8fc56] text-[#0a3c1a] rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 hover:scale-105"
+                aria-label="Create New Donation"
+                title="Add New Donation"
+              >
+                <Plus className="w-6 h-6 stroke-[3]" />
+              </button>
 
               <button
                 onClick={() => onNavigate('impact')}
@@ -110,18 +108,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 <span className="text-[10px] tracking-tight">Explore</span>
               </button>
 
-              <button
-                onClick={() => onNavigate('impact')}
-                className={`flex flex-col items-center gap-1 px-4 py-1 rounded-full transition-all ${
-                  currentScreen === 'impact'
-                    ? 'text-[#ccf148] font-bold'
-                    : 'text-white/70 hover:text-white'
-                }`}
-                aria-label="Impact"
-              >
-                <TrendingUp className="w-5 h-5" strokeWidth={currentScreen === 'impact' ? 2.5 : 1.8} />
-                <span className="text-[10px] tracking-tight">Impact</span>
-              </button>
 
               <button
                 onClick={() => onNavigate('profile')}
@@ -139,17 +125,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           )}
         </nav>
 
-        {/* Side Floating Add Button (Donator mode on certain screens) */}
-        {isDonator && variant === 'side-plus' && (
-          <button
-            onClick={onOpenCreate}
-            className="w-13 h-13 bg-[#ccf148] hover:bg-[#d8fc56] text-[#0a3c1a] rounded-full flex items-center justify-center shadow-xl transition-all active:scale-95 hover:scale-105 font-bold text-xs shrink-0"
-            aria-label="Add Listing"
-            title="Create New Donation"
-          >
-            <Plus className="w-7 h-7 stroke-[2.5]" />
-          </button>
-        )}
+
       </div>
     </div>
   );
