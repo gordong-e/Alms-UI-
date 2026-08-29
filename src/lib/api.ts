@@ -18,7 +18,8 @@ export const api = {
 
     let donatorData = null;
     if (userData.role === 'DONATOR') {
-      const { data } = await supabase.from('donators').select('*').eq('id', userId).single();
+      const { data, error: donatorError } = await supabase.from('donators').select('*').eq('id', userId).maybeSingle();
+      if (donatorError) throw donatorError;
       donatorData = data;
     }
 
