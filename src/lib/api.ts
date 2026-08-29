@@ -178,7 +178,7 @@ export const api = {
     const { data, error } = await supabase
       .from('donations')
       .select('*, donator:donator_id ( business_name, address )')
-      .eq('status', 'available')
+      .eq('status', 'AVAILABLE')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -211,7 +211,7 @@ export const api = {
     let query = supabase
       .from('donations')
       .select('*, donator:donator_id ( business_name, address )')
-      .in('status', ['claimed', 'completed'])
+      .in('status', ['CLAIMED', 'PARTIAL', 'EXPIRED', 'CANCELLED'])
       .order('created_at', { ascending: false });
 
     if (donatorId) {
@@ -234,7 +234,7 @@ export const api = {
       expiresText: 'Completed',
       hoursLeft: 0,
       imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
-      status: (d.status || 'completed') as any,
+      status: (d.status || 'claimed').toLowerCase() as any,
       donorName: d.donator?.business_name || 'Unknown Donator',
       location: d.donator?.address || 'Unknown Location',
       createdAt: d.created_at || '',
@@ -264,10 +264,10 @@ export const api = {
       category: d.category || 'Bakery',
       totalQuantity: d.total_quantity || 0,
       availableQuantity: d.available_quantity || 0,
-      expiresText: (d.status === 'available') ? 'Expires in 4h' : 'Completed',
-      hoursLeft: (d.status === 'available') ? 4 : 0,
+      expiresText: (d.status === 'AVAILABLE') ? 'Expires in 4h' : 'Completed',
+      hoursLeft: (d.status === 'AVAILABLE') ? 4 : 0,
       imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
-      status: (d.status || 'available') as any,
+      status: (d.status || 'available').toLowerCase() as any,
       donorName: d.donator?.business_name || 'Unknown Donator',
       location: d.donator?.address || 'Unknown Location',
       createdAt: d.created_at || '',
@@ -291,7 +291,7 @@ export const api = {
       instructions: item.instructions || '',
       lat: item.lat || 31.224,
       lng: item.lng || 75.771,
-      status: 'available',
+      status: 'AVAILABLE',
     }).select('*, donator:donator_id ( business_name, address )').single();
 
     if (error) {
@@ -326,7 +326,7 @@ export const api = {
       donation_id: donationId,
       rescuer_id: rescuerId,
       claimed_quantity: claimQuantity,
-      status: 'pending',
+      status: 'PENDING',
     }).select().single();
 
     if (error) {
@@ -343,7 +343,7 @@ export const api = {
 
     if (!fetchError && donData) {
       const newQty = Math.max(0, (donData.available_quantity || 0) - claimQuantity);
-      const newStatus = newQty === 0 ? 'claimed' : 'available';
+      const newStatus = newQty === 0 ? 'CLAIMED' : 'AVAILABLE';
 
       await supabase
         .from('donations')
