@@ -27,7 +27,7 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
       <section className="bg-[#0a3c1a] text-white rounded-3xl p-6 sm:p-7 lg:p-10 shadow-lg relative overflow-hidden">
         <div className="relative z-10">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 tracking-tight">
-            Good morning, {profile.name.split(' ')[0]}.
+            Good morning, {(profile.name || 'User').split(' ')[0]}.
           </h1>
           <p className="text-white/80 text-sm lg:text-base leading-relaxed mb-6 max-w-md">
             Your food rescues are making a real difference in the local community today.

@@ -25,7 +25,7 @@ export const api = {
 
     return {
       id: userData.id,
-      name: userData.name,
+      name: userData.name || donatorData?.business_name || 'User',
       email: userData.email,
       role: userData.role as any,
       avatarUrl: donatorData?.avatarUrl || '', // For now empty strings for mock visuals

@@ -10,7 +10,7 @@ interface DonatorOnboardingScreenProps {
 
 export const DonatorOnboardingScreen: React.FC<DonatorOnboardingScreenProps> = ({ profile, onComplete }) => {
   const [step, setStep] = useState(1);
-  const [businessName, setBusinessName] = useState(profile.name);
+  const [businessName, setBusinessName] = useState(profile.name || '');
   const [phone, setPhone] = useState(profile.phone || '');
   const [categories, setCategories] = useState<string[]>([]);
   const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
