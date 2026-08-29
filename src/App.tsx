@@ -352,6 +352,7 @@ export default function App() {
                   selectedRole={userRole}
                   onSelectRole={handleRoleSelection}
                   onContinue={handleRoleContinue}
+                  onLogout={handleLogout}
                 />
               )}
 

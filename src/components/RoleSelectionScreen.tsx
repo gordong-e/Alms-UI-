@@ -1,22 +1,37 @@
 import React from 'react';
-import { Heart, Truck, Check } from 'lucide-react';
+import { Heart, Truck, Check, LogOut } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface RoleSelectionScreenProps {
   selectedRole: UserRole;
   onSelectRole: (role: UserRole) => void;
   onContinue: () => void;
+  onLogout?: () => void;
 }
 
 export const RoleSelectionScreen: React.FC<RoleSelectionScreenProps> = ({
   selectedRole,
   onSelectRole,
   onContinue,
+  onLogout,
 }) => {
   return (
-    <div className="bg-[#f9f9f8] text-[#0a2510] min-h-screen flex flex-col justify-between pt-12 pb-8 px-6 antialiased max-w-lg mx-auto">
+    <div className="bg-[#f9f9f8] text-[#0a2510] min-h-screen flex flex-col justify-between pt-6 pb-8 px-6 antialiased max-w-lg mx-auto relative">
+      {/* Logout Button */}
+      {onLogout && (
+        <div className="absolute top-4 right-4 z-10">
+          <button
+            onClick={onLogout}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-red-600 bg-white shadow-sm border border-gray-100 rounded-full px-3 py-1.5 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Logout
+          </button>
+        </div>
+      )}
+
       {/* Header Section */}
-      <header className="text-center mb-8 flex-shrink-0" data-purpose="screen-header">
+      <header className="text-center mb-8 flex-shrink-0 pt-8" data-purpose="screen-header">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 leading-tight tracking-tight text-[#0a2510]">
           How will you use<br />Alms?
         </h1>
