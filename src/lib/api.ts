@@ -216,25 +216,49 @@ export const api = {
       return [];
     }
 
-    return (data || []).map((d: any) => ({
-      id: d.id,
-      title: d.title || 'Untitled Donation',
-      description: d.description || '',
-      category: d.category || 'Bakery',
-      totalQuantity: d.total_quantity || 0,
-      availableQuantity: d.available_quantity || 0,
-      expiresText: 'Expires in 4h',
-      hoursLeft: 4,
-      imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
-      status: 'available' as const,
-      donorName: d.donator?.business_name || 'Unknown Donator',
-      location: d.donator?.address || 'Unknown Location',
-      createdAt: d.created_at || '',
-      pickupWindow: d.pickup_window || 'Today',
-      instructions: d.instructions || '',
-      lat: d.lat || 31.224,
-      lng: d.lng || 75.771,
-    }));
+    if (!data || data.length === 0) return [];
+
+    // Fetch all pending claims to calculate effective available quantity
+    // This prevents over-booking while keeping the rule that the DB meal count only drops on physical QR scan.
+    const donationIds = data.map(d => d.id);
+    const { data: claimsData } = await supabase
+      .from('claims')
+      .select('donation_id, claimed_quantity')
+      .in('donation_id', donationIds)
+      .eq('status', 'PENDING');
+
+    const pendingClaimsSum = (claimsData || []).reduce((acc: any, claim: any) => {
+      acc[claim.donation_id] = (acc[claim.donation_id] || 0) + claim.claimed_quantity;
+      return acc;
+    }, {});
+
+    const enrichedDonations = data.map((d: any) => {
+      const pendingQty = pendingClaimsSum[d.id] || 0;
+      const effectiveAvailable = Math.max(0, (d.available_quantity || 0) - pendingQty);
+      
+      return {
+        id: d.id,
+        title: d.title || 'Untitled Donation',
+        description: d.description || '',
+        category: d.category || 'Bakery',
+        totalQuantity: d.total_quantity || 0,
+        availableQuantity: effectiveAvailable, // Using effective quantity to prevent over-booking
+        expiresText: 'Expires in 4h',
+        hoursLeft: 4,
+        imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+        status: 'available' as const,
+        donorName: d.donator?.business_name || 'Unknown Donator',
+        location: d.donator?.address || 'Unknown Location',
+        createdAt: d.created_at || '',
+        pickupWindow: d.pickup_window || 'Today',
+        instructions: d.instructions || '',
+        lat: d.lat || 31.224,
+        lng: d.lng || 75.771,
+      };
+    });
+
+    // Only return donations that still have effective quantity left
+    return enrichedDonations.filter(d => d.availableQuantity > 0);
   },
 
   async getHistoryDonations(donatorId?: string): Promise<DonationItem[]> {

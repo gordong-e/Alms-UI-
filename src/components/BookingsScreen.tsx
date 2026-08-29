@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, X, User, QrCode, Utensils, CalendarCheck, Package, RefreshCw } from 'lucide-react';
+import { Clock, X, User, QrCode, Utensils, CalendarCheck, Package, RefreshCw, CheckCircle } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import confetti from 'canvas-confetti';
 import { UserProfile } from '../types';
 import { api } from '../lib/api';
+import { supabase } from '../lib/supabaseClient';
 
 interface BookingsScreenProps {
   profile: UserProfile;
@@ -12,6 +14,7 @@ export const BookingsScreen: React.FC<BookingsScreenProps> = ({ profile }) => {
   const [pendingClaims, setPendingClaims] = useState<any[]>([]);
   const [selectedQrClaim, setSelectedQrClaim] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmedClaim, setConfirmedClaim] = useState<any | null>(null);
 
   const loadBookings = async () => {
     setLoading(true);
@@ -27,6 +30,48 @@ export const BookingsScreen: React.FC<BookingsScreenProps> = ({ profile }) => {
 
   useEffect(() => {
     loadBookings();
+    
+    // Subscribe to realtime updates on the claims table
+    const channel = supabase
+      .channel('claims_updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'claims', filter: `status=eq.PICKED_UP` },
+        (payload) => {
+          // payload.new contains the updated row
+          setPendingClaims((currentClaims) => {
+            const updatedClaim = currentClaims.find(c => c.id === payload.new.id);
+            if (updatedClaim) {
+              // This claim was just picked up!
+              setConfirmedClaim(updatedClaim);
+              setSelectedQrClaim((currentSelected) => {
+                // Close modal if this was the open one
+                if (currentSelected?.id === payload.new.id) {
+                  return null;
+                }
+                return currentSelected;
+              });
+              
+              // Fire confetti
+              confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#0a3c1a', '#b9f02c', '#ffffff'],
+              });
+              
+              // Remove it from the pending list
+              return currentClaims.filter(c => c.id !== payload.new.id);
+            }
+            return currentClaims;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profile.id]);
 
   const getTimeAgo = (createdAt: string) => {
@@ -92,6 +137,22 @@ export const BookingsScreen: React.FC<BookingsScreenProps> = ({ profile }) => {
           </div>
         </div>
       </div>
+
+      {/* Success Banner (Realtime Update) */}
+      {confirmedClaim && (
+        <div className="bg-[#eaf8d1] border border-[#b9f02c]/30 rounded-2xl p-4 flex items-center gap-3 animate-in slide-in-from-top duration-300 shadow-sm">
+          <CheckCircle className="w-6 h-6 text-[#0a3c1a] shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-[#0a3c1a]">Collection Confirmed!</p>
+            <p className="text-xs text-[#4d6600]">
+              <span className="font-bold">{confirmedClaim.rescuer?.name || 'A rescuer'}</span> just picked up <span className="font-bold">{confirmedClaim.claimed_quantity} meals</span> of {confirmedClaim.donation?.title || 'food'}.
+            </p>
+          </div>
+          <button onClick={() => setConfirmedClaim(null)} className="text-[#0a3c1a]/50 hover:text-[#0a3c1a] transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* Bookings List */}
       {loading ? (
