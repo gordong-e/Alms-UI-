@@ -18,12 +18,11 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
 }) => {
   const [step, setStep] = useState<'select' | 'confirmed'>('select');
   const [quantity, setQuantity] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen || !item) return null;
 
   const maxQuantity = item.availableQuantity;
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleConfirm = async () => {
     setIsSubmitting(true);

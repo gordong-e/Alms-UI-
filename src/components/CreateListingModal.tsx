@@ -32,8 +32,6 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   profile,
   initialItem,
 }) => {
-  if (!isOpen) return null;
-
   const [title, setTitle] = useState(initialItem?.title || '');
   const [description, setDescription] = useState(initialItem?.description || '');
   const [category, setCategory] = useState<DonationItem['category']>(initialItem?.category || 'Bakery');
@@ -44,6 +42,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const [instructions, setInstructions] = useState(initialItem?.instructions || 'Available at back counter or loading dock.');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

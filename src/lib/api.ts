@@ -116,7 +116,7 @@ export const api = {
       expiresText: `Expires in 4h`, // Simplify for now or calculate from created_at
       hoursLeft: 4,
       imageUrl: d.image_url || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
-      status: d.status.toLowerCase(),
+      status: d.status ? d.status.toLowerCase() : 'available',
       donorName: d.donator?.business_name || 'Unknown Donator',
       location: d.donator?.address || 'Unknown Location',
       createdAt: d.created_at,
@@ -190,7 +190,7 @@ export const api = {
       expiresText: 'Expires soon',
       hoursLeft: 4,
       imageUrl: data.image_url,
-      status: data.status.toLowerCase() as any,
+      status: data.status ? data.status.toLowerCase() as any : 'available',
       donorName: data.donator?.business_name,
       location: data.donator?.address,
       createdAt: data.created_at,
@@ -228,7 +228,7 @@ export const api = {
       category: donData.category,
       totalQuantity: donData.total_quantity,
       availableQuantity: donData.available_quantity,
-      status: donData.status.toLowerCase(),
+      status: donData.status ? donData.status.toLowerCase() : 'claimed',
       donorName: donData.donator?.business_name,
       location: donData.donator?.address,
     };

@@ -20,10 +20,10 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
   onClaimRescue,
   onEditListing,
 }) => {
-  if (!isOpen || !item) return null;
-
   const [showQr, setShowQr] = useState(false);
-  const [claimed, setClaimed] = useState(item.status !== 'available');
+  const [claimed, setClaimed] = useState(item?.status !== 'available');
+
+  if (!isOpen || !item) return null;
 
   const handleClaim = () => {
     setClaimed(true);
