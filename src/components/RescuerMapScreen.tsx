@@ -44,17 +44,55 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const routeLayerRef = useRef<L.GeoJSON | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [routeInfo, setRouteInfo] = useState<{distance: string, duration: string} | null>(null);
 
-  const USER_LOCATION = { lat: 31.2200, lng: 75.7700 }; // Mock user location in Phagwara
+  // Real user location from browser GPS, with fallback
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({ lat: 31.2200, lng: 75.7700 });
+  const [locationLoaded, setLocationLoaded] = useState(false);
+
+  // Get real browser location on mount
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationLoaded(true);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationLoaded(true);
+      },
+      (err) => {
+        console.warn('Geolocation denied or unavailable, using fallback:', err.message);
+        setLocationLoaded(true);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }, []);
+
+  // Helper: calculate straight-line distance in km between two coordinates
+  const calcDistanceKm = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
 
   const availableDonations = donations.filter((d) => d.status === 'available');
 
-  const filtered = availableDonations.filter((item) => {
+  // Enrich donations with real calculated distance
+  const enrichedDonations = availableDonations.map((item) => ({
+    ...item,
+    _distKm: calcDistanceKm(userLocation.lat, userLocation.lng, item.lat, item.lng),
+    distance: `${calcDistanceKm(userLocation.lat, userLocation.lng, item.lat, item.lng).toFixed(1)} km`,
+  }));
+
+  const filtered = enrichedDonations.filter((item) => {
     const matchesCat = selectedCategory === 'All' || item.category === selectedCategory;
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,12 +101,8 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     return matchesCat && matchesSearch;
   });
 
-  // Sort by distance initially
-  const baseSorted = [...filtered].sort((a, b) => {
-    const distA = parseFloat(a.distance?.replace(/[^\d.]/g, '') || '999');
-    const distB = parseFloat(b.distance?.replace(/[^\d.]/g, '') || '999');
-    return distA - distB;
-  });
+  // Sort by real distance
+  const baseSorted = [...filtered].sort((a, b) => a._distKm - b._distKm);
 
   // Bring the highlighted item to the top of the stack
   const sorted = highlightedId 
@@ -85,7 +119,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false,
-    }).setView([31.2240, 75.7708], 14);
+    }).setView([userLocation.lat, userLocation.lng], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -93,14 +127,14 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Add User Location Marker
+    // Add User Location Marker (blue dot)
     const userIcon = L.divIcon({
       html: `<div style="width: 18px; height: 18px; background: #2563eb; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
       className: '',
       iconSize: [18, 18],
       iconAnchor: [9, 9]
     });
-    L.marker([USER_LOCATION.lat, USER_LOCATION.lng], { icon: userIcon })
+    userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
       .bindTooltip('Your Location', { direction: 'top', offset: [0, -10] })
       .addTo(map);
 
@@ -112,8 +146,18 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     return () => {
       map.remove();
       mapRef.current = null;
+      userMarkerRef.current = null;
     };
   }, [viewMode]);
+
+  // Update map center + user marker when real location arrives
+  useEffect(() => {
+    if (!mapRef.current || !locationLoaded) return;
+    mapRef.current.setView([userLocation.lat, userLocation.lng], mapRef.current.getZoom());
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+    }
+  }, [userLocation, locationLoaded]);
 
   // Update markers when donations change
   useEffect(() => {
@@ -157,7 +201,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
 
     if (donators.length > 0 && !highlightedId) {
       const bounds = L.latLngBounds(donators.map((d) => [d.lat, d.lng] as [number, number]));
-      bounds.extend([USER_LOCATION.lat, USER_LOCATION.lng]);
+      bounds.extend([userLocation.lat, userLocation.lng]);
       map.fitBounds(bounds.pad(0.3));
     }
   }, [sorted, donators, viewMode, highlightedId]);
@@ -177,7 +221,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     const item = donations.find((d) => d.id === highlightedId);
     if (!item) return;
 
-    fetch(`https://router.project-osrm.org/route/v1/driving/${USER_LOCATION.lng},${USER_LOCATION.lat};${item.lng},${item.lat}?overview=full&geometries=geojson`)
+    fetch(`https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${item.lng},${item.lat}?overview=full&geometries=geojson`)
       .then((res) => res.json())
       .then((data) => {
         if (data.routes && data.routes[0]) {
@@ -198,7 +242,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
           }).addTo(mapRef.current!);
 
           const bounds = L.latLngBounds([
-            [USER_LOCATION.lat, USER_LOCATION.lng],
+            [userLocation.lat, userLocation.lng],
             [item.lat, item.lng]
           ]);
           mapRef.current.fitBounds(bounds.pad(0.2));
