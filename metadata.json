@@ -1,0 +1,6 @@
+{
+  "name": "NourishResq",
+  "description": "A food rescue and donation platform connecting surplus food to communities in need.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
