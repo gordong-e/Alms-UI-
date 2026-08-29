@@ -57,13 +57,22 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     }
   };
 
-  const handleGoogleAuth = () => {
+  const handleGoogleAuth = async () => {
     setIsLoading(true);
-    // TODO: Replace with real Google OAuth
-    setTimeout(() => {
+    setErrorMsg('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'Google authentication failed');
       setIsLoading(false);
-      onAuthSuccess('Sarah Mitchell', 'sarah.m@greenmarket.org');
-    }, 500);
+    }
   };
 
   return (
