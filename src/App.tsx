@@ -63,23 +63,29 @@ export default function App() {
       setProfile(p);
       setIsAuthenticated(true);
 
-      // Fetch data in parallel, but don't let any single failure kill the whole app
-      const [avail, hist, dons] = await Promise.all([
-        api.getAvailableDonations().catch(() => []),
-        api.getHistoryDonations(p.role === 'donate' ? uid : undefined).catch(() => []),
-        api.getDonators().catch(() => []),
-      ]);
-      setDonations(avail);
-      setHistoryDonations(hist);
-      setDonators(dons);
+      // Only fetch data relevant to the user's role to minimize DB calls
+      // Donators need: their own donations + donators list (for map)
+      // Rescuers need: available donations + donators list (for map)
+      // Unassigned: nothing yet
+      const isDonator = p.role === 'donate' && p.isOnboarded;
+      const isRescuer = p.role === 'rescue';
 
-      // Check the raw DB role to determine navigation
-      // p.role is already mapped to 'donate' | 'rescue' by getUserProfile
-      const isUnassigned = p.role === 'donate' && !p.isOnboarded && p.organizationName === '';
+      if (isDonator || isRescuer) {
+        const [avail, dons] = await Promise.all([
+          api.getAvailableDonations().catch(() => []),
+          api.getDonators().catch(() => []),
+        ]);
+        setDonations(avail);
+        setDonators(dons);
 
-      // Check if user has actually selected a role in the DB
-      const { data: rawUser } = await supabase.from('users').select('role').eq('id', uid).maybeSingle();
-      const dbRole = rawUser?.role;
+        // Only fetch history for donators (rescuers don't need it on initial load)
+        if (isDonator) {
+          api.getHistoryDonations(uid).then(h => setHistoryDonations(h)).catch(() => {});
+        }
+      }
+
+      // p._dbRole is set by getUserProfile to avoid an extra DB call
+      const dbRole = (p as any)._dbRole;
 
       if (dbRole && dbRole !== 'UNASSIGNED') {
         setHasSelectedRole(true);
@@ -102,7 +108,6 @@ export default function App() {
       }
     } catch (err) {
       console.error("refreshData failed:", err);
-      // Even on total failure, at least let the user see something
       setIsAuthenticated(true);
       setCurrentScreen('role_selection');
     }

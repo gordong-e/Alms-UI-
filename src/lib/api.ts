@@ -79,7 +79,7 @@ export const api = {
       }
     }
 
-    return {
+    const result: any = {
       id: userData.id,
       name: userData.name || donatorData?.business_name || 'User',
       email: userData.email || '',
@@ -102,7 +102,10 @@ export const api = {
       isOnboarded: !!donatorData,
       lat: donatorData?.lat,
       lng: donatorData?.lng,
+      // Internal: raw DB role so App.tsx doesn't need an extra query
+      _dbRole: userData.role,
     };
+    return result;
   },
 
   async getDonators(): Promise<DonatorProfile[]> {
