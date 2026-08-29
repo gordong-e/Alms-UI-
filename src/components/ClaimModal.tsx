@@ -24,11 +24,10 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
   const [claimRecord, setClaimRecord] = useState<any>(null);
   const [scanError, setScanError] = useState('');
 
-  if (!isOpen || !item) return null;
-
-  const maxQuantity = item.availableQuantity;
+  const maxQuantity = item?.availableQuantity || 1;
 
   const handleConfirm = async () => {
+    if (!item) return;
     setIsSubmitting(true);
     try {
       const claim = await onConfirmClaim(item, quantity);
@@ -88,6 +87,8 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
       };
     }
   }, [step, claimRecord]);
+
+  if (!isOpen || !item) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">

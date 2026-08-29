@@ -121,9 +121,9 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
       attributionControl: false,
     }).setView([userLocation.lat, userLocation.lng], 14);
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: 'Tiles &copy; Esri'
+      attribution: 'Tiles &copy; OpenStreetMap'
     }).addTo(map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
