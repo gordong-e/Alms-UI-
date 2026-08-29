@@ -121,8 +121,9 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
       attributionControl: false,
     }).setView([userLocation.lat, userLocation.lng], 14);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
+      attribution: '&copy; OpenStreetMap &copy; CARTO'
     }).addTo(map);
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
