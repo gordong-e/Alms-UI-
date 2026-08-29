@@ -3,10 +3,18 @@ import { DonationItem, DonatorProfile, UserProfile } from '../types';
 
 export const api = {
   // --- Users ---
-  async getUserProfile(userId: string): Promise<UserProfile> {
+  async getUserProfile(userId: string, retries = 3): Promise<UserProfile> {
     // Fetch from users table
     const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
-    if (userError) throw userError;
+    
+    if (userError) {
+      if (userError.code === 'PGRST116' && retries > 0) {
+        // Race condition: trigger hasn't finished inserting public.users row yet. Wait 500ms and try again.
+        await new Promise(res => setTimeout(res, 500));
+        return this.getUserProfile(userId, retries - 1);
+      }
+      throw userError;
+    }
 
     let donatorData = null;
     if (userData.role === 'DONATOR') {
