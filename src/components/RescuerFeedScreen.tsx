@@ -99,7 +99,7 @@ export const RescuerFeedScreen: React.FC<RescuerFeedScreenProps> = ({
                   {item.title}
                 </h3>
                 <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-xs px-2 py-0.5 rounded-full shrink-0">
-                  ~{item.mealsCount} meals
+                  ~{item.availableQuantity} meals
                 </span>
               </div>
 

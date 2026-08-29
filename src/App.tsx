@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { ScreenType, UserRole, DonationItem, UserProfile } from './types';
-import { initialProfile, initialDonations, initialHistoryDonations, initialNotifications } from './data/mockData';
+import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ScreenType, UserRole, DonationItem, UserProfile, DonatorProfile } from './types';
+import { initialProfile, initialDonations, initialHistoryDonations, initialNotifications, initialDonators } from './data/mockData';
+import { api } from './lib/api';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { RoleSelectionScreen } from './components/RoleSelectionScreen';
+import { DonatorOnboardingScreen } from './components/DonatorOnboardingScreen';
 import { LandingScreen } from './components/LandingScreen';
 import { DonatorDashboard } from './components/DonatorDashboard';
 import { DonationsScreen } from './components/DonationsScreen';
@@ -26,6 +29,7 @@ export default function App() {
   const [donations, setDonations] = useState<DonationItem[]>(initialDonations);
   const [historyDonations, setHistoryDonations] = useState<DonationItem[]>(initialHistoryDonations);
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [donators, setDonators] = useState<DonatorProfile[]>(initialDonators);
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -46,11 +50,15 @@ export default function App() {
     if (userRole === 'rescue') {
       setCurrentScreen('rescuer_map');
     } else {
-      setCurrentScreen('dashboard');
+      if (!profile.isOnboarded) {
+        setCurrentScreen('donator_onboarding');
+      } else {
+        setCurrentScreen('dashboard');
+      }
     }
   };
 
-  const handleCreateOrUpdateListing = (itemData: Omit<DonationItem, 'id' | 'createdAt'>) => {
+  const handleCreateOrUpdateListing = async (itemData: Omit<DonationItem, 'id' | 'createdAt' | 'totalQuantity'> & { availableQuantity: number }) => {
     if (editingItem) {
       setDonations((prev) =>
         prev.map((item) =>
@@ -59,15 +67,11 @@ export default function App() {
       );
       setEditingItem(null);
     } else {
-      const newItem: DonationItem = {
-        id: `don-${Date.now()}`,
-        createdAt: 'Just now',
-        ...itemData,
-      };
+      const newItem = await api.createDonation(itemData);
       setDonations((prev) => [newItem, ...prev]);
       setProfile((prev) => ({
         ...prev,
-        mealsDonated: prev.mealsDonated + itemData.mealsCount,
+        mealsDonated: prev.mealsDonated + itemData.availableQuantity,
       }));
     }
   };
@@ -87,14 +91,13 @@ export default function App() {
     setIsClaimOpen(true);
   };
 
-  const handleConfirmClaim = (item: DonationItem, quantity: number) => {
+  const handleConfirmClaim = async (item: DonationItem, quantity: number) => {
+    const updatedItem = await api.claimDonation(item.id, quantity);
+    
     setDonations((prev) =>
-      prev.map((d) =>
-        d.id === item.id
-          ? { ...d, status: 'claimed' as const, claimedQuantity: quantity }
-          : d
-      )
+      prev.map((d) => (d.id === item.id ? updatedItem : d))
     );
+    
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
@@ -109,7 +112,7 @@ export default function App() {
   };
 
   const handleClaimRescue = (item: DonationItem) => {
-    handleConfirmClaim(item, item.mealsCount);
+    handleConfirmClaim(item, item.availableQuantity);
   };
 
   const handleAuthSuccess = (name: string, email: string) => {
@@ -124,8 +127,32 @@ export default function App() {
       setCurrentScreen('role_selection');
     } else {
       // Already picked a role before, go to appropriate screen
-      setCurrentScreen(userRole === 'rescue' ? 'rescuer_map' : 'dashboard');
+      if (userRole === 'rescue') {
+        setCurrentScreen('rescuer_map');
+      } else {
+        setCurrentScreen(profile.isOnboarded ? 'dashboard' : 'donator_onboarding');
+      }
     }
+  };
+
+  const handleOnboardingComplete = (onboardingData: Partial<DonatorProfile>) => {
+    setProfile(prev => ({
+      ...prev,
+      ...onboardingData,
+      isOnboarded: true
+    }));
+    
+    const newDonator: DonatorProfile = {
+      id: `donor-${Date.now()}`,
+      businessName: onboardingData.businessName || profile.name,
+      lat: onboardingData.lat || 31.2240,
+      lng: onboardingData.lng || 75.7708,
+      categories: onboardingData.categories || [],
+      avatarUrl: profile.storeAvatarUrl || profile.avatarUrl
+    };
+    
+    setDonators(prev => [newDonator, ...prev]);
+    setCurrentScreen('dashboard');
   };
 
   const handleLogout = () => {
@@ -140,17 +167,23 @@ export default function App() {
 
   const handleNavigate = (screen: ScreenType) => {
     // Guard auth-required screens
-    const authRequiredScreens: ScreenType[] = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map', 'role_selection'];
+    const authRequiredScreens: ScreenType[] = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map', 'role_selection', 'donator_onboarding'];
     if (authRequiredScreens.includes(screen) && !isAuthenticated) {
       setCurrentScreen('signup');
       return;
     }
+    
+    if (screen === 'dashboard' && userRole === 'donate' && !profile.isOnboarded) {
+      setCurrentScreen('donator_onboarding');
+      return;
+    }
+    
     setCurrentScreen(screen);
   };
 
   // ── Presentation Logic ──
 
-  const showHeader = !['role_selection', 'signup', 'login', 'landing'].includes(currentScreen);
+  const showHeader = !['role_selection', 'signup', 'login', 'landing', 'donator_onboarding'].includes(currentScreen);
   const showBottomNav = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map'].includes(currentScreen);
   const headerVariant = currentScreen === 'profile' ? 'profile' : 'standard';
 
@@ -162,9 +195,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#edece8] text-[#191c19] flex flex-col items-center">
-      {/* Main Container */}
-      <div className="w-full flex-1 bg-[#fdfaf5] min-h-screen shadow-md transition-all">
+    <>
+      <div className="min-h-screen bg-[#edece8] text-[#191c19] flex flex-col items-center">
+        {/* Main Container */}
+        <div className="w-full flex-1 bg-[#fdfaf5] min-h-screen shadow-md transition-all flex flex-col">
         {/* App Header */}
         {showHeader && (
           <Header
@@ -181,93 +215,113 @@ export default function App() {
         )}
 
         {/* Screens */}
-        <main className="relative">
-          {currentScreen === 'landing' && (
-            <LandingScreen
-              onNavigate={handleNavigate}
-              onSetRole={handleRoleSelection}
-              onOpenCreate={() => {
-                setEditingItem(null);
-                setIsCreateOpen(true);
-              }}
-            />
-          )}
+        <main className="relative flex-1 flex flex-col">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentScreen}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="w-full flex-1 flex flex-col"
+            >
+              {currentScreen === 'landing' && (
+                <LandingScreen
+                  onNavigate={handleNavigate}
+                  onSetRole={handleRoleSelection}
+                  onOpenCreate={() => {
+                    setEditingItem(null);
+                    setIsCreateOpen(true);
+                  }}
+                />
+              )}
 
-          {currentScreen === 'signup' && (
-            <AuthScreen
-              initialMode="signup"
-              onAuthSuccess={handleAuthSuccess}
-              onBackToLanding={() => setCurrentScreen('landing')}
-            />
-          )}
+              {currentScreen === 'signup' && (
+                <AuthScreen
+                  initialMode="signup"
+                  onAuthSuccess={handleAuthSuccess}
+                  onBackToLanding={() => setCurrentScreen('landing')}
+                />
+              )}
 
-          {currentScreen === 'login' && (
-            <AuthScreen
-              initialMode="login"
-              onAuthSuccess={handleAuthSuccess}
-              onBackToLanding={() => setCurrentScreen('landing')}
-            />
-          )}
+              {currentScreen === 'login' && (
+                <AuthScreen
+                  initialMode="login"
+                  onAuthSuccess={handleAuthSuccess}
+                  onBackToLanding={() => setCurrentScreen('landing')}
+                />
+              )}
 
-          {currentScreen === 'role_selection' && (
-            <RoleSelectionScreen
-              selectedRole={userRole}
-              onSelectRole={handleRoleSelection}
-              onContinue={handleRoleContinue}
-            />
-          )}
+              {currentScreen === 'role_selection' && (
+                <RoleSelectionScreen
+                  selectedRole={userRole}
+                  onSelectRole={handleRoleSelection}
+                  onContinue={handleRoleContinue}
+                />
+              )}
 
-          {currentScreen === 'dashboard' && (
-            <DonatorDashboard
-              profile={profile}
-              donations={donations}
-              onOpenCreate={() => {
-                setEditingItem(null);
-                setIsCreateOpen(true);
-              }}
-              onEditListing={handleEditListing}
-              onViewDetails={handleViewDetails}
-              onNavigate={handleNavigate}
-            />
-          )}
+              {currentScreen === 'donator_onboarding' && (
+                <DonatorOnboardingScreen
+                  profile={profile}
+                  onComplete={handleOnboardingComplete}
+                />
+              )}
 
-          {currentScreen === 'donations' && (
-            <DonationsScreen
-              activeDonations={donations.filter((d) => d.status === 'available')}
-              historyDonations={historyDonations}
-              onOpenCreate={() => {
-                setEditingItem(null);
-                setIsCreateOpen(true);
-              }}
-              onEditListing={handleEditListing}
-              onViewDetails={handleViewDetails}
-            />
-          )}
+              {currentScreen === 'dashboard' && (
+                <DonatorDashboard
+                  profile={profile}
+                  donations={donations}
+                  onOpenCreate={() => {
+                    setEditingItem(null);
+                    setIsCreateOpen(true);
+                  }}
+                  onEditListing={handleEditListing}
+                  onViewDetails={handleViewDetails}
+                  onNavigate={handleNavigate}
+                />
+              )}
 
-          {currentScreen === 'profile' && (
-            <ProfileScreen
-              profile={profile}
-              onNavigate={handleNavigate}
-            />
-          )}
+              {currentScreen === 'donations' && (
+                <DonationsScreen
+                  activeDonations={donations.filter((d) => d.status === 'available')}
+                  historyDonations={historyDonations}
+                  onOpenCreate={() => {
+                    setEditingItem(null);
+                    setIsCreateOpen(true);
+                  }}
+                  onEditListing={handleEditListing}
+                  onViewDetails={handleViewDetails}
+                />
+              )}
 
-          {currentScreen === 'impact' && (
-            <ImpactScreen profile={profile} />
-          )}
+              {currentScreen === 'profile' && (
+                <ProfileScreen
+                  profile={profile}
+                  onNavigate={handleNavigate}
+                />
+              )}
 
-          {currentScreen === 'rescuer_map' && (
-            <RescuerMapScreen
-              donations={donations}
-              onSelectDonation={handleSelectDonationForClaim}
-            />
-          )}
+              {currentScreen === 'impact' && (
+                <ImpactScreen profile={profile} />
+              )}
 
-          {currentScreen === 'rescuer_feed' && (
-            <RescuerMapScreen
-              donations={donations}
-              onSelectDonation={handleSelectDonationForClaim}
-            />
-          )}
+              {currentScreen === 'rescuer_map' && (
+                <RescuerMapScreen
+                  donations={donations}
+                  donators={donators}
+                  onSelectDonation={handleSelectDonationForClaim}
+                />
+              )}
+
+              {currentScreen === 'rescuer_feed' && (
+                <RescuerMapScreen
+                  donations={donations}
+                  donators={donators}
+                  onSelectDonation={handleSelectDonationForClaim}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         {/* Floating Bottom Navigation */}
@@ -319,5 +373,6 @@ export default function App() {
         onConfirmClaim={handleConfirmClaim}
       />
     </div>
+    </>
   );
 }

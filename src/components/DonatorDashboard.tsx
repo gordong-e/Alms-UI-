@@ -138,7 +138,7 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
                       {item.title}
                     </h3>
                     <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-xs px-2.5 py-1 rounded-full shrink-0">
-                      ~{item.mealsCount} meals
+                      ~{item.availableQuantity} meals
                     </span>
                   </div>
 

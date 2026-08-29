@@ -52,21 +52,14 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => onNavigate(role === 'rescue' ? 'rescuer_map' : 'dashboard')}
         >
-          {variant === 'profile' ? (
-            <div className="w-10 h-10 rounded-full bg-[#0a3c1a] text-[#ccf148] font-bold flex items-center justify-center text-sm shadow-sm">
-              NR
-            </div>
-          ) : (
-            <div className="relative">
-              <img
-                src={profile.avatarUrl}
-                alt="User Avatar"
-                className="w-10 h-10 rounded-full border border-gray-200 object-cover group-hover:scale-105 transition-transform"
-                referrerPolicy="no-referrer"
-              />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#ccf148] border-2 border-white rounded-full"></span>
-            </div>
-          )}
+          <div className="relative">
+            <img
+              src="/logo.png"
+              alt="Alms logo"
+              className="w-10 h-10 rounded-full border border-[#0a3c1a]/10 object-cover bg-white shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#ccf148] border-2 border-white rounded-full"></span>
+          </div>
           <div className="flex flex-col">
             <span className="font-bold text-xl text-[#0a3c1a] tracking-tight group-hover:text-[#125828] transition-colors">
               Alms

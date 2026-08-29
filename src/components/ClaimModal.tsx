@@ -7,7 +7,7 @@ interface ClaimModalProps {
   item: DonationItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirmClaim: (item: DonationItem, quantity: number) => void;
+  onConfirmClaim: (item: DonationItem, quantity: number) => Promise<void>;
 }
 
 export const ClaimModal: React.FC<ClaimModalProps> = ({
@@ -21,17 +21,26 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
 
   if (!isOpen || !item) return null;
 
-  const maxQuantity = item.mealsCount;
+  const maxQuantity = item.availableQuantity;
 
-  const handleConfirm = () => {
-    onConfirmClaim(item, quantity);
-    setStep('confirmed');
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#0a3c1a', '#b9f02c', '#ffffff'],
-    });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
+    try {
+      await onConfirmClaim(item, quantity);
+      setStep('confirmed');
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#0a3c1a', '#b9f02c', '#ffffff'],
+      });
+    } catch (error) {
+      console.error("Failed to claim donation:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDone = () => {
@@ -84,7 +93,7 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5 bg-[#eaf8d1] text-[#4d6600] px-3 py-1.5 rounded-full text-xs font-bold">
                   <Utensils className="w-3.5 h-3.5" />
-                  ~{item.mealsCount} meals available
+                  ~{item.availableQuantity} meals available
                 </div>
                 <div className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full text-xs font-bold">
                   <Clock className="w-3.5 h-3.5" />
@@ -157,10 +166,20 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
               {/* Confirm button */}
               <button
                 onClick={handleConfirm}
-                className="w-full bg-[#0a3c1a] hover:bg-[#124b22] text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.99]"
+                disabled={isSubmitting}
+                className="w-full bg-[#0a3c1a] hover:bg-[#124b22] text-white font-bold py-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.99] disabled:opacity-80 disabled:cursor-not-allowed"
               >
-                Confirm Collection ({quantity} meal{quantity > 1 ? 's' : ''})
-                <ArrowRight className="w-4 h-4 text-[#b9f02c]" />
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                    Confirming...
+                  </span>
+                ) : (
+                  <>
+                    Confirm Collection ({quantity} meal{quantity > 1 ? 's' : ''})
+                    <ArrowRight className="w-4 h-4 text-[#b9f02c]" />
+                  </>
+                )}
               </button>
             </div>
           </>

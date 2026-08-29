@@ -69,7 +69,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
             <div className="flex items-center gap-3 text-xs text-white/90 font-medium">
               <span className="flex items-center gap-1">
                 <Utensils className="w-3.5 h-3.5 text-[#b9f02c]" />
-                ~{item.mealsCount} meals
+                ~{item.availableQuantity} meals
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">

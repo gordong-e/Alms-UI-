@@ -1,7 +1,23 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { ArrowRight, CheckCircle2, Heart, Plus, Truck, Users } from 'lucide-react';
 import { HERO_IMAGE, VOLUNTEERS_IMAGE } from '../data/mockData';
 import { ScreenType, UserRole } from '../types';
+import { HowItWorks } from './ui/how-it-works';
+import { RuixenGradientFooter } from './ui/ruixen-gradient-footer';
+
+const FOOTER_COLUMNS = [
+  {
+    title: "Platform",
+    links: ["Overview", "How it works", "Impact", "Partners"],
+  },
+  {
+    title: "Resources",
+    links: ["Help Center", "Community", "Blog", "Contact"],
+  },
+  { title: "Company", links: ["About", "Careers", "Press"] },
+  { title: "Legal", links: ["Privacy", "Terms", "Security"] },
+];
 
 interface LandingScreenProps {
   onNavigate: (screen: ScreenType) => void;
@@ -15,53 +31,80 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
   onOpenCreate,
 }) => {
   return (
-    <div className="bg-[#fdfaf5] text-[#1a202c] pb-12 min-h-screen">
-      <main className="px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8 pt-2">
+    <div className="bg-[#fdfaf5] text-[#1a202c] min-h-screen flex flex-col relative">
+      <main className="flex-grow px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8 pt-2 pb-12 w-full z-10 relative">
         {/* Hero Section — full-width on desktop, taller */}
-        <section className="relative rounded-3xl overflow-hidden h-[500px] lg:h-[560px] shadow-lg group">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="relative rounded-3xl overflow-hidden h-[500px] lg:h-[560px] shadow-lg group"
+        >
           <img
             alt="Community food rescue"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            src={HERO_IMAGE}
+            src="/heroimage.jpg"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20 flex flex-col justify-end p-6 lg:p-12">
             {/* Brand */}
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-[#0a3c1a] text-[#ccf148] flex items-center justify-center shadow-sm">
-                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-                </svg>
-              </div>
+              <img
+                src="/logo.png"
+                alt="Alms logo"
+                className="w-9 h-9 rounded-xl object-cover shadow-sm border border-white/30 bg-white/10"
+              />
               <span className="text-white/90 font-bold text-lg tracking-tight">Alms</span>
             </div>
 
-            <h1 className="text-white text-4xl lg:text-5xl font-extrabold leading-tight mb-3 tracking-tight max-w-lg">
-              Fight Waste,<br />Feed<br />Community
-            </h1>
-            <p className="text-white/90 text-sm lg:text-base mb-6 max-w-md leading-relaxed">
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="text-white text-4xl lg:text-5xl font-extrabold leading-tight mb-3 tracking-tight max-w-lg"
+            >
+              No Empty Bowls
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-white/90 text-sm lg:text-base mb-6 max-w-md leading-relaxed"
+            >
               Join the movement to rescue perfectly good food and distribute it to those who need it most.
-            </p>
-            <div className="flex items-center gap-3">
-              <button
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="flex items-center gap-3"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onNavigate('signup')}
-                className="bg-[#b9f02c] text-[#0a3c1a] font-bold py-3.5 px-6 rounded-full inline-flex items-center justify-center gap-2 w-max shadow-lg hover:bg-[#c9fb40] active:scale-95 transition-all text-sm lg:text-base lg:py-4 lg:px-8"
+                className="bg-[#b9f02c] text-[#0a3c1a] font-bold py-3.5 px-6 rounded-full inline-flex items-center justify-center gap-2 w-max shadow-lg hover:bg-[#c9fb40] transition-all text-sm lg:text-base lg:py-4 lg:px-8"
               >
                 Get Started
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </motion.button>
               <button
                 onClick={() => onNavigate('login')}
-                className="text-white/90 font-semibold text-sm hover:text-white underline underline-offset-2 transition-colors"
+                className="text-white/90 font-semibold text-sm hover:text-white underline underline-offset-2 transition-colors ml-2"
               >
                 Log In
               </button>
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
-        {/* Impact Stats + Donate CTA — side by side on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        >
           {/* Impact Stats */}
           <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4">
             <div className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wider">
@@ -77,12 +120,22 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
               <div className="text-gray-500 text-sm">Food rescued this week</div>
             </div>
             <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1">
-              <div className="h-full bg-[#b9f02c] w-[75%] rounded-full transition-all duration-1000"></div>
+              <motion.div 
+                initial={{ width: 0 }}
+                whileInView={{ width: "75%" }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.5, delay: 0.2, ease: "easeOut" }}
+                className="h-full bg-[#b9f02c] rounded-full"
+              />
             </div>
           </section>
 
           {/* Donate CTA Card */}
-          <section className="bg-[#0a3c1a] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-center">
+          <motion.section 
+            whileHover={{ y: -5 }}
+            className="bg-[#0a3c1a] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-center cursor-pointer"
+            onClick={() => onNavigate('signup')}
+          >
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
             <div className="mb-4 text-[#b9f02c]">
               <Heart className="w-8 h-8 stroke-[1.8]" />
@@ -92,59 +145,25 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
               Local partners are ready to pick up your surplus. Sign up to start sharing.
             </p>
             <button
-              onClick={() => onNavigate('signup')}
               className="text-sm font-semibold flex items-center gap-2 hover:text-[#b9f02c] transition-colors group"
             >
               Get Started
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
 
-        {/* How It Works — 3 column grid on desktop */}
-        <section className="py-6">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl lg:text-3xl font-bold text-[#0a3c1a] mb-2 tracking-tight">How It Works</h2>
-            <p className="text-gray-500 text-sm lg:text-base max-w-md mx-auto">
-              Connecting abundance with need in three simple steps.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center flex flex-col items-center">
-              <div className="w-14 h-14 bg-[#b9f02c] rounded-full flex items-center justify-center mb-4 text-[#0a3c1a] shadow-sm">
-                <Plus className="w-6 h-6 stroke-[2.5]" />
-              </div>
-              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">1. Donators Log Surplus</h4>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Restaurants, grocers, and individuals quickly log their extra food for the day — what they have and how much.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center flex flex-col items-center">
-              <div className="w-14 h-14 bg-[#b9f02c] rounded-full flex items-center justify-center mb-4 text-[#0a3c1a] shadow-sm">
-                <Truck className="w-6 h-6 stroke-[2]" />
-              </div>
-              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">2. Rescuers Find & Collect</h4>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Rescuers see nearby donations on a live map, choose what to collect, pick the quantity, and head over to pick it up.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center flex flex-col items-center">
-              <div className="w-14 h-14 bg-[#b9f02c] rounded-full flex items-center justify-center mb-4 text-[#0a3c1a] shadow-sm">
-                <Users className="w-6 h-6 stroke-[2]" />
-              </div>
-              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">3. Community Gets Fed</h4>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                The rescued food reaches local pantries, shelters, and communities — nourishing those who need it most.
-              </p>
-            </div>
-          </div>
-        </section>
+        {/* How It Works */}
+        <HowItWorks />
 
         {/* Why Alms? — two column on desktop */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 lg:p-12 shadow-sm border border-gray-100">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.6 }}
+          className="bg-white rounded-3xl p-6 sm:p-8 lg:p-12 shadow-sm border border-gray-100"
+        >
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
             <div className="lg:w-1/2">
               <h2 className="text-2xl lg:text-3xl font-bold text-[#0a3c1a] mb-3 tracking-tight">Why Alms?</h2>
@@ -153,55 +172,56 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
               </p>
 
               <ul className="space-y-4">
-                <li className="flex gap-3 items-start">
-                  <div className="text-[#0a3c1a] shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-5 h-5 text-[#0a3c1a]" />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-[#0a3c1a] text-sm">Community Impact</h5>
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      Directly support local families and shelters in your neighborhood.
-                    </p>
-                  </div>
-                </li>
-
-                <li className="flex gap-3 items-start">
-                  <div className="text-[#0a3c1a] shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-5 h-5 text-[#0a3c1a]" />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-[#0a3c1a] text-sm">Environmental Sustainability</h5>
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      Reduce greenhouse gas emissions by keeping edible food out of landfills.
-                    </p>
-                  </div>
-                </li>
-
-                <li className="flex gap-3 items-start">
-                  <div className="text-[#0a3c1a] shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-5 h-5 text-[#0a3c1a]" />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-[#0a3c1a] text-sm">Ease of Use</h5>
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      An intuitive, mobile-friendly platform designed for speed and simplicity.
-                    </p>
-                  </div>
-                </li>
+                {[
+                  { title: "Community Impact", desc: "Directly support local families and shelters in your neighborhood." },
+                  { title: "Environmental Sustainability", desc: "Reduce greenhouse gas emissions by keeping edible food out of landfills." },
+                  { title: "Ease of Use", desc: "An intuitive, mobile-friendly platform designed for speed and simplicity." }
+                ].map((item, idx) => (
+                  <motion.li 
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 + (idx * 0.1), duration: 0.4 }}
+                    className="flex gap-3 items-start"
+                  >
+                    <div className="text-[#0a3c1a] shrink-0 mt-0.5">
+                      <CheckCircle2 className="w-5 h-5 text-[#0a3c1a]" />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-[#0a3c1a] text-sm">{item.title}</h5>
+                      <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </motion.li>
+                ))}
               </ul>
             </div>
 
-            <img
-              alt="Volunteers packing food"
-              className="w-full h-64 lg:h-80 object-cover rounded-3xl shadow-sm"
-              src={VOLUNTEERS_IMAGE}
-              referrerPolicy="no-referrer"
-            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="lg:w-1/2 w-full"
+            >
+              <img
+                alt="Volunteers packing food"
+                className="w-full h-64 lg:h-80 object-cover rounded-3xl shadow-sm"
+                src={VOLUNTEERS_IMAGE}
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Final CTA & Footer */}
-        <section className="bg-[#0a3c1a] rounded-3xl p-8 lg:p-12 text-center flex flex-col items-center">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.6 }}
+          className="bg-[#0a3c1a] rounded-3xl p-8 lg:p-12 text-center flex flex-col items-center"
+        >
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4 leading-tight">
             Ready to Make<br />a Difference?
           </h2>
@@ -209,28 +229,88 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             Whether you have food to give or time to volunteer, there's a place for you here.
           </p>
 
-          <div className="w-full max-w-md space-y-3 mb-10">
-            <button
+          <div className="w-full max-w-md space-y-3">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('signup')}
-              className="w-full bg-[#b9f02c] text-[#0a3c1a] font-bold py-4 px-6 rounded-2xl shadow-sm hover:opacity-95 active:scale-[0.99] transition-all"
+              className="w-full bg-[#b9f02c] text-[#0a3c1a] font-bold py-4 px-6 rounded-2xl shadow-sm transition-colors"
             >
               Sign Up — It's Free
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03, backgroundColor: "rgba(255,255,255,0.1)" }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => onNavigate('login')}
-              className="w-full bg-transparent border border-white text-white font-bold py-4 px-6 rounded-2xl hover:bg-white/10 active:scale-[0.99] transition-colors"
+              className="w-full bg-transparent border border-white text-white font-bold py-4 px-6 rounded-2xl transition-colors"
             >
               I Already Have an Account
-            </button>
+            </motion.button>
           </div>
-
-          <div className="w-full border-t border-white/20 pt-6">
-            <p className="text-white/50 text-xs">
-              © 2024 Alms. All rights reserved.
-            </p>
-          </div>
-        </section>
+        </motion.section>
       </main>
+
+      <RuixenGradientFooter gradientHeight="35vh" className="relative z-10 bg-[#fdfaf5] text-[#1a202c]">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+          <div className="grid gap-10 pb-10 sm:grid-cols-2 lg:grid-cols-6 border-t border-[#0a3c1a]/10 pt-10">
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2 text-[#0a3c1a]">
+                <img src="/logo.png" alt="Alms" className="w-6 h-6 rounded-md shadow-sm border border-[#0a3c1a]/10" />
+                <span className="font-bold text-base tracking-tight">
+                  Alms
+                </span>
+              </div>
+              <p className="mt-4 max-w-xs text-sm text-gray-500">
+                Fighting food waste and feeding communities. Built for speed, impact, and sustainability.
+              </p>
+ 
+              <div className="mt-6 flex max-w-xs gap-2">
+                <input
+                  type="email"
+                  aria-label="Email address"
+                  placeholder="you@email.com"
+                  className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-[#1a202c] placeholder:text-gray-400 focus:border-[#b9f02c] focus:ring-2 focus:ring-[#b9f02c]/20 focus:outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  className="h-10 shrink-0 rounded-xl bg-[#0a3c1a] px-4 font-bold text-xs uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                >
+                  Join
+                </button>
+              </div>
+            </div>
+ 
+            <nav className="grid grid-cols-2 gap-10 font-bold text-xs uppercase tracking-wider sm:grid-cols-4 lg:col-span-4">
+              {FOOTER_COLUMNS.map((col) => (
+                <div key={col.title}>
+                  <h3 className="text-[#0a3c1a]">{col.title}</h3>
+                  <ul className="mt-4 flex flex-col gap-3 font-medium normal-case tracking-normal">
+                    {col.links.map((link) => (
+                      <li key={link}>
+                        <a
+                          href="#"
+                          className="text-gray-500 transition-colors hover:text-[#0a3c1a]"
+                        >
+                          {link}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </nav>
+          </div>
+ 
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-[#0a3c1a]/10 pt-6 pb-2 font-bold text-xs uppercase tracking-wider text-gray-400 sm:flex-row">
+            <span>© 2026 Alms Foundation</span>
+            <span className="flex items-center gap-2">
+              <span className="size-1.5 rounded-full bg-[#b9f02c]" />
+              All systems operational
+            </span>
+            <span>Made with ♥</span>
+          </div>
+        </div>
+      </RuixenGradientFooter>
     </div>
   );
 };

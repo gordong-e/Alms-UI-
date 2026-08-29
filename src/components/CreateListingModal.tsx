@@ -7,7 +7,7 @@ import { BAKERY_IMAGE_1, BAKERY_BASKET_IMAGE, PRODUCE_STAND_IMAGE, ROOT_VEGGIE_I
 interface CreateListingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveListing: (item: Omit<DonationItem, 'id' | 'createdAt'>) => void;
+  onSaveListing: (item: Omit<DonationItem, 'id' | 'createdAt' | 'totalQuantity'> & { availableQuantity: number }) => Promise<void>;
   profile: UserProfile;
   initialItem?: DonationItem | null;
 }
@@ -33,21 +33,25 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
   const [title, setTitle] = useState(initialItem?.title || '');
   const [description, setDescription] = useState(initialItem?.description || '');
   const [category, setCategory] = useState<DonationItem['category']>(initialItem?.category || 'Bakery');
-  const [mealsCount, setMealsCount] = useState(initialItem?.mealsCount || 15);
+  const [availableQuantity, setMealsCount] = useState(initialItem?.availableQuantity || 15);
   const [hoursLeft, setHoursLeft] = useState(initialItem?.hoursLeft || 4);
   const [selectedImage, setSelectedImage] = useState(initialItem?.imageUrl || BAKERY_IMAGE_1);
   const [pickupWindow, setPickupWindow] = useState(initialItem?.pickupWindow || 'Today by 4:00 PM');
   const [instructions, setInstructions] = useState(initialItem?.instructions || 'Available at back counter or loading dock.');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    onSaveListing({
+    setIsSubmitting(true);
+    try {
+      await onSaveListing({
       title: title.trim(),
       description: description.trim() || 'Fresh surplus food ready for immediate pickup.',
       category,
-      mealsCount: Number(mealsCount) || 10,
+      availableQuantity: Number(availableQuantity) || 10,
       hoursLeft: Number(hoursLeft) || 4,
       expiresText: `Ends in ${hoursLeft}h`,
       imageUrl: selectedImage,
@@ -68,6 +72,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
     });
 
     onClose();
+    } catch (error) {
+      console.error("Failed to save listing:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -160,7 +169,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
                       type="number"
                       min="1"
                       max="500"
-                      value={mealsCount}
+                      value={availableQuantity}
                       onChange={(e) => setMealsCount(Number(e.target.value))}
                       className="w-full rounded-xl px-3.5 py-2.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#0a3c1a] outline-none"
                     />
@@ -253,10 +262,20 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({
           <div className="pt-6 mt-auto">
             <button
               type="submit"
-              className="w-full bg-[#0a3c1a] hover:bg-[#124d23] text-white font-bold py-3.5 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"
+              disabled={isSubmitting}
+              className="w-full bg-[#0a3c1a] hover:bg-[#124d23] text-white font-bold py-3.5 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-not-allowed"
             >
-              <Sparkles className="w-4 h-4 text-[#b9f02c]" />
-              {initialItem ? 'Update Listing' : 'Publish Surplus Food Listing'}
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                  Saving...
+                </span>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 text-[#b9f02c]" />
+                  {initialItem ? 'Update Listing' : 'Publish Surplus Food Listing'}
+                </>
+              )}
             </button>
           </div>
         </form>

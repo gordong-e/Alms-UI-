@@ -119,7 +119,7 @@ export const DonationsScreen: React.FC<DonationsScreenProps> = ({
               <div className="flex items-center gap-4 text-xs font-semibold text-gray-500 mb-4 pb-3 border-b border-gray-100">
                 <div className="flex items-center gap-1.5 text-[#0a3c1a]">
                   <Utensils className="w-3.5 h-3.5 text-[#0a3c1a]" />
-                  <span>~{item.mealsCount} meals</span>
+                  <span>~{item.availableQuantity} meals</span>
                 </div>
                 <span className="text-gray-300">•</span>
                 <div className="flex items-center gap-1.5 text-[#d9381e]">

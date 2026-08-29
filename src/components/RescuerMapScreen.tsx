@@ -2,24 +2,29 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MapPin, Navigation, Clock, Utensils, Search, List, Map as MapIcon, ChevronRight, X } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { DonationItem } from '../types';
+import { DonationItem, DonatorProfile } from '../types';
 
 interface RescuerMapScreenProps {
   donations: DonationItem[];
+  donators: DonatorProfile[];
   onSelectDonation: (item: DonationItem) => void;
 }
 
 // Custom marker icon using inline SVG data URI
-const createMarkerIcon = (mealsCount: number) => {
+const createMarkerIcon = (isActive: boolean, availableQuantity: number) => {
+  const bgColor = isActive ? "#0a3c1a" : "#dc2626"; // Dark green vs Red
+  const innerColor = isActive ? "#b9f02c" : "#fca5a5"; // Lime vs Light Red
+  const text = isActive ? availableQuantity.toString() : '0';
+  
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="52" viewBox="0 0 40 52">
     <defs>
       <filter id="shadow" x="-20%" y="-10%" width="140%" height="130%">
         <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
       </filter>
     </defs>
-    <path d="M20 50 C20 50 36 32 36 20 C36 11.16 28.84 4 20 4 C11.16 4 4 11.16 4 20 C4 32 20 50 20 50Z" fill="#0a3c1a" filter="url(#shadow)"/>
-    <circle cx="20" cy="20" r="12" fill="#b9f02c"/>
-    <text x="20" y="24" text-anchor="middle" fill="#0a3c1a" font-size="11" font-weight="800" font-family="sans-serif">${mealsCount}</text>
+    <path d="M20 50 C20 50 36 32 36 20 C36 11.16 28.84 4 20 4 C11.16 4 4 11.16 4 20 C4 32 20 50 20 50Z" fill="${bgColor}" filter="url(#shadow)"/>
+    <circle cx="20" cy="20" r="12" fill="${innerColor}"/>
+    <text x="20" y="24" text-anchor="middle" fill="${bgColor}" font-size="11" font-weight="800" font-family="sans-serif">${text}</text>
   </svg>`;
 
   return L.divIcon({
@@ -33,6 +38,7 @@ const createMarkerIcon = (mealsCount: number) => {
 
 export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
   donations,
+  donators,
   onSelectDonation,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -57,12 +63,20 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     return matchesCat && matchesSearch;
   });
 
-  // Sort by distance
-  const sorted = [...filtered].sort((a, b) => {
+  // Sort by distance initially
+  const baseSorted = [...filtered].sort((a, b) => {
     const distA = parseFloat(a.distance?.replace(/[^\d.]/g, '') || '999');
     const distB = parseFloat(b.distance?.replace(/[^\d.]/g, '') || '999');
     return distA - distB;
   });
+
+  // Bring the highlighted item to the top of the stack
+  const sorted = highlightedId 
+    ? [
+        ...baseSorted.filter(d => d.id === highlightedId),
+        ...baseSorted.filter(d => d.id !== highlightedId)
+      ]
+    : baseSorted;
 
   // Initialize map
   useEffect(() => {
@@ -113,24 +127,40 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
       }
     });
 
-    sorted.forEach((item) => {
-      const marker = L.marker([item.lat, item.lng], {
-        icon: createMarkerIcon(item.mealsCount),
+    donators.forEach((donator) => {
+      // Find active donations for this donator (matching by name in mock)
+      const donatorActiveDonations = sorted.filter(d => d.donorName === donator.businessName);
+      const isActive = donatorActiveDonations.length > 0;
+      const availableQuantity = donatorActiveDonations.reduce((sum, d) => sum + d.availableQuantity, 0);
+
+      const marker = L.marker([donator.lat, donator.lng], {
+        icon: createMarkerIcon(isActive, availableQuantity),
       }).addTo(map);
 
       marker.on('click', () => {
-        setHighlightedId(item.id);
-        const el = document.getElementById(`donation-card-${item.id}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (isActive) {
+          const firstDonation = donatorActiveDonations[0];
+          setHighlightedId(firstDonation.id);
+          const el = document.getElementById(`donation-card-${firstDonation.id}`);
+          if (el) {
+            // Scroll to top of the list container since the item is moved to index 0
+            const container = el.parentElement;
+            if (container) container.scrollTop = 0;
+          }
+        } else {
+          setHighlightedId(null);
+          // Show small popup for donators with no active donations
+          marker.bindPopup(`<div class="text-sm font-bold text-[#0a3c1a]">${donator.businessName}</div><div class="text-xs text-gray-500 mt-1">No active donations right now.</div>`).openPopup();
+        }
       });
     });
 
-    if (sorted.length > 0 && !highlightedId) {
-      const bounds = L.latLngBounds(sorted.map((d) => [d.lat, d.lng] as [number, number]));
+    if (donators.length > 0 && !highlightedId) {
+      const bounds = L.latLngBounds(donators.map((d) => [d.lat, d.lng] as [number, number]));
       bounds.extend([USER_LOCATION.lat, USER_LOCATION.lng]);
       map.fitBounds(bounds.pad(0.3));
     }
-  }, [sorted, viewMode, highlightedId]);
+  }, [sorted, donators, viewMode, highlightedId]);
 
   // Fetch and draw route when a donation is highlighted
   useEffect(() => {
@@ -188,46 +218,89 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const DonationCard: React.FC<{ item: DonationItem; compact?: boolean }> = ({ item, compact = false }) => (
-    <div
-      id={`donation-card-${item.id}`}
-      onClick={() => onSelectDonation(item)}
-      className={`bg-white rounded-2xl shadow-sm border transition-all cursor-pointer active:scale-[0.99] flex gap-3 ${
-        compact ? 'p-3' : 'p-3.5'
-      } ${
-        highlightedId === item.id
-          ? 'border-[#b9f02c] ring-2 ring-[#b9f02c]/30 shadow-md'
-          : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
-      }`}
-    >
-      <div className={`rounded-xl overflow-hidden bg-gray-100 shrink-0 ${compact ? 'w-16 h-16' : 'w-20 h-20'}`}>
-        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-1">
-          <h3 className="font-bold text-sm text-[#0a3c1a] truncate">{item.title}</h3>
-          <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+  const DonationCard: React.FC<{ item: DonationItem; compact?: boolean }> = ({ item, compact = false }) => {
+    const isSelected = highlightedId === item.id;
+    return (
+      <div
+        id={`donation-card-${item.id}`}
+        onClick={() => {
+          if (isSelected) {
+            onSelectDonation(item);
+          } else {
+            setHighlightedId(item.id);
+            if (mapRef.current) {
+              mapRef.current.panTo([item.lat, item.lng]);
+            }
+            const el = document.getElementById(`donation-card-${item.id}`);
+            if (el) {
+              const container = el.parentElement;
+              if (container) container.scrollTop = 0;
+            }
+          }
+        }}
+        className={`bg-white rounded-2xl shadow-sm border transition-all cursor-pointer active:scale-[0.99] flex flex-col ${
+          compact ? 'p-3' : 'p-3.5'
+        } ${
+          isSelected
+            ? 'border-[#b9f02c] ring-2 ring-[#b9f02c]/30 shadow-md'
+            : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
+        }`}
+      >
+        <div className="flex gap-3 w-full">
+          <div className={`rounded-xl overflow-hidden bg-gray-100 shrink-0 ${compact ? 'w-16 h-16' : 'w-20 h-20'}`}>
+            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-1">
+              <h3 className="font-bold text-sm text-[#0a3c1a] truncate">{item.title}</h3>
+              <ChevronRight className={`w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+            </div>
+            <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+              <MapPin className="w-3 h-3 text-gray-400" />
+              {item.donorName}
+            </p>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-[10px] px-2 py-0.5 rounded-full">
+                ~{item.availableQuantity} meals
+              </span>
+              <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium">
+                <Navigation className="w-3 h-3" />
+                {isSelected && routeInfo ? routeInfo.distance : item.distance || '—'}
+              </span>
+              <span className="text-[10px] text-red-500 flex items-center gap-1 font-semibold">
+                <Clock className="w-3 h-3" />
+                {isSelected && routeInfo ? `${routeInfo.duration} drive` : item.expiresText}
+              </span>
+            </div>
+          </div>
         </div>
-        <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-          <MapPin className="w-3 h-3 text-gray-400" />
-          {item.donorName}
-        </p>
-        <div className="flex items-center gap-3 mt-2">
-          <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-[10px] px-2 py-0.5 rounded-full">
-            ~{item.mealsCount} meals
-          </span>
-          <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium">
-            <Navigation className="w-3 h-3" />
-            {highlightedId === item.id && routeInfo ? routeInfo.distance : item.distance || '—'}
-          </span>
-          <span className="text-[10px] text-red-500 flex items-center gap-1 font-semibold">
-            <Clock className="w-3 h-3" />
-            {highlightedId === item.id && routeInfo ? `${routeInfo.duration} drive` : item.expiresText}
-          </span>
-        </div>
+
+        {/* Expanded Info */}
+        {isSelected && (
+          <div className="mt-3 pt-3 border-t border-gray-100/80 animate-in fade-in slide-in-from-top-2 duration-300">
+            <p className="text-xs text-gray-600 mb-3 leading-relaxed">{item.description}</p>
+            <div className="flex items-start gap-2 mb-4">
+              <Utensils className="w-3.5 h-3.5 text-[#0a3c1a] mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-[#0a3c1a]">Pickup Window</p>
+                <p className="text-[11px] text-gray-500">{item.pickupWindow}</p>
+              </div>
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectDonation(item);
+              }}
+              className="w-full bg-[#0a3c1a] hover:bg-[#124b22] text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2"
+            >
+              Collect Food
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] lg:h-[calc(100vh-80px)] relative">
@@ -355,7 +428,7 @@ export const RescuerMapScreen: React.FC<RescuerMapScreenProps> = ({
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="font-bold text-base text-[#0a3c1a]">{item.title}</h3>
                     <span className="bg-[#eaf8d1] text-[#4d6600] font-bold text-xs px-2 py-0.5 rounded-full shrink-0">
-                      ~{item.mealsCount} meals
+                      ~{item.availableQuantity} meals
                     </span>
                   </div>
 

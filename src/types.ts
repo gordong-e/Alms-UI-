@@ -8,16 +8,27 @@ export type ScreenType =
   | 'profile' 
   | 'impact' 
   | 'rescuer_feed'
-  | 'rescuer_map';
+  | 'rescuer_map'
+  | 'donator_onboarding';
 
 export type UserRole = 'donate' | 'rescue';
+
+export interface DonatorProfile {
+  id: string;
+  businessName: string;
+  lat: number;
+  lng: number;
+  categories: string[];
+  avatarUrl?: string;
+}
 
 export interface DonationItem {
   id: string;
   title: string;
   description: string;
   category: 'Bakery' | 'Produce' | 'Cooked Meals' | 'Dairy & Deli' | 'Pantry';
-  mealsCount: number;
+  totalQuantity: number;
+  availableQuantity: number;
   expiresText: string;
   hoursLeft: number;
   imageUrl: string;
@@ -52,6 +63,9 @@ export interface UserProfile {
   bio: string;
   phone: string;
   address: string;
+  isOnboarded: boolean;
+  lat?: number;
+  lng?: number;
 }
 
 export interface NotificationItem {
