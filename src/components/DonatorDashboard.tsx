@@ -1,6 +1,8 @@
-import React from 'react';
-import { Plus, Clock, Utensils, Award, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, Clock, Utensils, Award, ChevronRight, X, User } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { DonationItem, UserProfile, ScreenType } from '../types';
+import { api } from '../lib/api';
 
 interface DonatorDashboardProps {
   profile: UserProfile;
@@ -20,6 +22,17 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
   onNavigate,
 }) => {
   const activeListings = donations.filter((d) => d.status === 'available');
+  
+  const [pendingClaims, setPendingClaims] = useState<any[]>([]);
+  const [selectedQrClaim, setSelectedQrClaim] = useState<any | null>(null);
+
+  useEffect(() => {
+    const loadPending = async () => {
+      const claims = await api.getPendingClaims(profile.id);
+      setPendingClaims(claims);
+    };
+    loadPending();
+  }, [profile.id]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-4 lg:space-y-6 pb-28 pt-2">
@@ -83,6 +96,52 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Pending Pickups Section */}
+      {pendingClaims.length > 0 && (
+        <section className="pt-2 space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-xl lg:text-2xl font-bold text-[#e67e22] tracking-tight">Pending Pickups</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+            {pendingClaims.map((claim) => (
+              <article
+                key={claim.id}
+                className="bg-white rounded-3xl p-5 shadow-sm border-2 border-orange-100 transition-all"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-bold text-lg text-[#0a3c1a]">{claim.donation?.title}</h3>
+                    <p className="text-xs font-semibold text-gray-500 mt-0.5">
+                      {claim.claimed_quantity} meals claimed
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex flex-shrink-0 items-center justify-center text-gray-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium leading-none mb-1">Rescuer</p>
+                    <p className="text-sm font-bold text-gray-800 leading-none">{claim.rescuer?.name || 'Unknown'}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedQrClaim(claim)}
+                  className="w-full bg-[#0a3c1a] hover:bg-[#124b22] text-white font-bold py-3 rounded-2xl transition-colors text-sm shadow-sm"
+                >
+                  Show Pickup QR Code
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Active Listings Section */}
       <section className="pt-2 space-y-4">
@@ -164,6 +223,38 @@ export const DonatorDashboard: React.FC<DonatorDashboardProps> = ({
           </div>
         )}
       </section>
+
+      {/* QR Code Modal */}
+      {selectedQrClaim && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl relative" style={{ animation: 'slideUp 0.25s ease-out' }}>
+            <button
+              onClick={() => setSelectedQrClaim(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="p-6 text-center space-y-4">
+              <h3 className="text-xl font-bold text-[#0a3c1a]">Pickup QR Code</h3>
+              <p className="text-sm text-gray-500">Ask the rescuer to scan this code when they arrive to confirm the pickup.</p>
+              
+              <div className="bg-white p-4 rounded-2xl border-2 border-gray-100 inline-block mt-4 mx-auto shadow-sm">
+                <QRCode
+                  value={JSON.stringify({ type: 'pickup', claimId: selectedQrClaim.id, donationId: selectedQrClaim.donation_id })}
+                  size={200}
+                  level="H"
+                />
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-3 mt-4 text-left border border-gray-100">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Rescuer Info</p>
+                <p className="text-sm font-bold text-gray-800">{selectedQrClaim.rescuer?.name || 'Unknown'}</p>
+                <p className="text-xs text-gray-600 mt-0.5">{selectedQrClaim.rescuer?.email}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

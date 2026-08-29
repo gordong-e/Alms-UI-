@@ -383,4 +383,32 @@ export const api = {
 
     return data;
   },
+
+  async confirmCollection(claimId: string): Promise<void> {
+    const { error } = await supabase
+      .from('claims')
+      .update({ status: 'PICKED_UP' })
+      .eq('id', claimId);
+      
+    if (error) {
+      console.error('confirmCollection error:', error);
+      throw error;
+    }
+  },
+
+  async getPendingClaims(donatorId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('claims')
+      .select('*, donation:donations!inner(*), rescuer:users!claims_rescuer_id_fkey(name, email, phone)')
+      .eq('status', 'PENDING')
+      .eq('donations.donator_id', donatorId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('getPendingClaims error:', error);
+      return [];
+    }
+
+    return data || [];
+  },
 };

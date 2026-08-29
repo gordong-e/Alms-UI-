@@ -189,21 +189,23 @@ export default function App() {
   };
 
   const handleConfirmClaim = async (item: DonationItem, quantity: number) => {
-    if (!profile) return;
-    await api.claimDonation(item.id, profile.id, quantity);
+    if (!profile) return null;
+    const claim = await api.claimDonation(item.id, profile.id, quantity);
     refreshData(profile.id);
     
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
-        title: 'Collection Confirmed! 🚚',
-        message: `You're collecting ${quantity} meal${quantity > 1 ? 's' : ''} from "${item.title}".`,
+        title: 'Collection Booked! 🚚',
+        message: `You've booked ${quantity} meal${quantity > 1 ? 's' : ''} from "${item.title}". Scan QR at pickup.`,
         time: 'Just now',
         read: false,
         type: 'claim' as const,
       },
       ...prev,
     ]);
+
+    return claim;
   };
 
   const handleClaimRescue = (item: DonationItem) => {

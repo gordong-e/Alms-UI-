@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { X, Minus, Plus, MapPin, Clock, Utensils, Navigation, CheckCircle, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Minus, Plus, MapPin, Clock, Utensils, Navigation, CheckCircle, ArrowRight, Camera } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { DonationItem } from '../types';
+import { api } from '../lib/api';
 
 interface ClaimModalProps {
   item: DonationItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirmClaim: (item: DonationItem, quantity: number) => Promise<void>;
+  onConfirmClaim: (item: DonationItem, quantity: number) => Promise<any>;
 }
 
 export const ClaimModal: React.FC<ClaimModalProps> = ({
@@ -16,9 +18,11 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
   onClose,
   onConfirmClaim,
 }) => {
-  const [step, setStep] = useState<'select' | 'confirmed'>('select');
+  const [step, setStep] = useState<'select' | 'booked' | 'scanning' | 'confirmed'>('select');
   const [quantity, setQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [claimRecord, setClaimRecord] = useState<any>(null);
+  const [scanError, setScanError] = useState('');
 
   if (!isOpen || !item) return null;
 
@@ -27,14 +31,9 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      await onConfirmClaim(item, quantity);
-      setStep('confirmed');
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#0a3c1a', '#b9f02c', '#ffffff'],
-      });
+      const claim = await onConfirmClaim(item, quantity);
+      setClaimRecord(claim);
+      setStep('booked');
     } catch (error) {
       console.error("Failed to claim donation:", error);
     } finally {
@@ -45,8 +44,50 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
   const handleDone = () => {
     setStep('select');
     setQuantity(1);
+    setClaimRecord(null);
     onClose();
   };
+
+  const startScanner = () => {
+    setStep('scanning');
+  };
+
+  useEffect(() => {
+    if (step === 'scanning') {
+      const scanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
+
+      scanner.render(async (decodedText) => {
+        try {
+          const data = JSON.parse(decodedText);
+          if (data.type === 'pickup' && data.claimId === claimRecord?.id) {
+            scanner.clear();
+            await api.confirmCollection(claimRecord.id);
+            setStep('confirmed');
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: ['#0a3c1a', '#b9f02c', '#ffffff'],
+            });
+          } else {
+            setScanError('Invalid QR code for this pickup.');
+          }
+        } catch (e) {
+          setScanError('Could not read QR code.');
+        }
+      }, (error) => {
+        // ignore continuous scan errors
+      });
+
+      return () => {
+        scanner.clear().catch(console.error);
+      };
+    }
+  }, [step, claimRecord]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -171,17 +212,99 @@ export const ClaimModal: React.FC<ClaimModalProps> = ({
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                    Confirming...
+                    Booking...
                   </span>
                 ) : (
                   <>
-                    Confirm Collection ({quantity} meal{quantity > 1 ? 's' : ''})
+                    Book Collection ({quantity} meal{quantity > 1 ? 's' : ''})
                     <ArrowRight className="w-4 h-4 text-[#b9f02c]" />
                   </>
                 )}
               </button>
             </div>
           </>
+        ) : step === 'booked' ? (
+          /* Booked state */
+          <div className="p-8 text-center space-y-5">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="w-20 h-20 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <Clock className="w-10 h-10 stroke-[1.8]" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold text-[#0a3c1a] mb-2">Collection Booked!</h2>
+              <p className="text-sm text-gray-600 leading-relaxed max-w-xs mx-auto">
+                Head to <span className="font-bold">{item.donorName}</span> to pick up your {quantity} meal{quantity > 1 ? 's' : ''}.
+              </p>
+            </div>
+
+            <div className="bg-[#f9faf4] rounded-2xl p-4 text-left space-y-3 border border-gray-100">
+              <div className="flex items-start gap-3 text-xs">
+                <MapPin className="w-4 h-4 text-[#0a3c1a] shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-gray-800">{item.location}</p>
+                  <p className="text-gray-500">{item.distance}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-white border-2 border-[#0a3c1a] text-[#0a3c1a] hover:bg-gray-50 font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
+              >
+                <Navigation className="w-4 h-4" />
+                Get Directions
+              </a>
+              <button
+                onClick={startScanner}
+                className="w-full bg-[#0a3c1a] hover:bg-[#124b22] text-white font-bold py-3.5 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-sm"
+              >
+                <Camera className="w-4 h-4 text-[#b9f02c]" />
+                Scan QR at Pickup
+              </button>
+            </div>
+          </div>
+        ) : step === 'scanning' ? (
+          <div className="p-6 text-center space-y-5">
+            <button
+              onClick={() => setStep('booked')}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center z-10 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-[#0a3c1a] mb-2">Scan QR Code</h2>
+            <p className="text-sm text-gray-500 mb-4">Ask the donator to show their QR code to confirm pickup.</p>
+            
+            <div className="w-full max-w-sm mx-auto overflow-hidden rounded-2xl border-2 border-gray-100 relative bg-black aspect-square">
+              <div id="qr-reader" className="w-full h-full"></div>
+            </div>
+
+            {scanError && (
+              <p className="text-red-500 text-sm font-medium mt-4 bg-red-50 py-2 px-3 rounded-lg">{scanError}</p>
+            )}
+            
+            {/* Fallback button for demo purposes if camera fails */}
+            <button
+               onClick={() => {
+                 api.confirmCollection(claimRecord.id).then(() => {
+                   setStep('confirmed');
+                   confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#0a3c1a', '#b9f02c', '#ffffff'] });
+                 });
+               }}
+               className="mt-4 text-xs font-semibold text-gray-400 hover:text-gray-600 underline"
+            >
+               Simulate Successful Scan (Demo)
+            </button>
+          </div>
         ) : (
           /* Confirmed state */
           <div className="p-8 text-center space-y-5">
