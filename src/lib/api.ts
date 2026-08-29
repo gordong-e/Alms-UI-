@@ -4,16 +4,31 @@ import { DonationItem, DonatorProfile, UserProfile } from '../types';
 export const api = {
   // --- Users ---
   async getUserProfile(userId: string, retries = 3): Promise<UserProfile> {
-    // Fetch from users table
-    const { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
+    // Fetch from users table using maybeSingle to avoid PGRST116 throwing immediately
+    let { data: userData, error: userError } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
     
-    if (userError) {
-      if (userError.code === 'PGRST116' && retries > 0) {
-        // Race condition: trigger hasn't finished inserting public.users row yet. Wait 500ms and try again.
-        await new Promise(res => setTimeout(res, 500));
+    if (userError) throw userError;
+
+    if (!userData) {
+      if (retries > 0) {
+        // Race condition: trigger hasn't finished inserting public.users row yet. Wait 1s and try again.
+        await new Promise(res => setTimeout(res, 1000));
         return this.getUserProfile(userId, retries - 1);
+      } else {
+        // Trigger completely failed (or timed out). Upsert manually as a fallback so the UI never white-screens.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData.session?.user;
+        
+        const { data: newUser, error: insertError } = await supabase.from('users').upsert({
+          id: userId,
+          email: user?.email || '',
+          name: user?.user_metadata?.full_name || user?.user_metadata?.name || 'Alms User',
+          role: 'UNASSIGNED'
+        }).select('*').single();
+        
+        if (insertError) throw insertError;
+        userData = newUser;
       }
-      throw userError;
     }
 
     let donatorData = null;
