@@ -413,7 +413,7 @@ export const api = {
   async getPendingClaims(donatorId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('claims')
-      .select('*, donation:donations!inner(*), rescuer:users!claims_rescuer_id_fkey(name, email, phone)')
+      .select('*, donation:donations!inner(*), rescuer:users!claims_rescuer_id_fkey(name, email)')
       .eq('status', 'PENDING')
       .eq('donations.donator_id', donatorId)
       .order('created_at', { ascending: false });
@@ -429,7 +429,7 @@ export const api = {
   async getRescuerBookings(rescuerId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('claims')
-      .select('*, donation:donations!inner(*, donator:donator_id(business_name, address))')
+      .select('*, donation:donations!inner(*, donator:donator_id(business_name, address, phone))')
       .eq('rescuer_id', rescuerId)
       .eq('status', 'PENDING')
       .order('created_at', { ascending: false });
