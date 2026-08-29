@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ScreenType, UserRole, DonationItem, UserProfile, DonatorProfile } from './types';
-import { initialProfile, initialDonations, initialHistoryDonations, initialNotifications, initialDonators } from './data/mockData';
 import { api } from './lib/api';
+import { supabase } from './lib/supabaseClient';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { RoleSelectionScreen } from './components/RoleSelectionScreen';
@@ -19,17 +19,20 @@ import { ListingDetailsModal } from './components/ListingDetailsModal';
 import { ClaimModal } from './components/ClaimModal';
 
 export default function App() {
-  // Auth state — easy to replace with real auth later
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasSelectedRole, setHasSelectedRole] = useState(false);
+  const [sessionUser, setSessionUser] = useState<any>(null);
 
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('landing');
   const [userRole, setUserRole] = useState<UserRole>('donate');
-  const [profile, setProfile] = useState<UserProfile>(initialProfile);
-  const [donations, setDonations] = useState<DonationItem[]>(initialDonations);
-  const [historyDonations, setHistoryDonations] = useState<DonationItem[]>(initialHistoryDonations);
-  const [notifications, setNotifications] = useState(initialNotifications);
-  const [donators, setDonators] = useState<DonatorProfile[]>(initialDonators);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  
+  const [donations, setDonations] = useState<DonationItem[]>([]);
+  const [historyDonations, setHistoryDonations] = useState<DonationItem[]>([]);
+  const [donators, setDonators] = useState<DonatorProfile[]>([]);
+  
+  // Keep mock notifications for UI demonstration, since we don't have a notification table yet
+  const [notifications, setNotifications] = useState<any[]>([]); 
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -38,11 +41,64 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
   const [editingItem, setEditingItem] = useState<DonationItem | null>(null);
 
+  // ── Auth & Data Fetching ──
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const refreshData = async (uid: string) => {
+    try {
+      const p = await api.getUserProfile(uid);
+      setProfile(p);
+      setIsAuthenticated(true);
+      
+      const [avail, hist, dons] = await Promise.all([
+        api.getAvailableDonations(),
+        api.getHistoryDonations(p.role === 'DONATOR' ? uid : undefined),
+        api.getDonators(),
+      ]);
+      setDonations(avail);
+      setHistoryDonations(hist);
+      setDonators(dons);
+
+      if (p.role !== 'UNASSIGNED') {
+        setHasSelectedRole(true);
+        setUserRole(p.role === 'DONATOR' ? 'donate' : 'rescue');
+      }
+    } catch (err) {
+      console.error("Failed to load user data:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (sessionUser) {
+      refreshData(sessionUser.id);
+    } else {
+      setIsAuthenticated(false);
+      setProfile(null);
+    }
+  }, [sessionUser]);
+
   // ── Handlers ──
 
-  const handleRoleSelection = (role: UserRole) => {
+  const handleRoleSelection = async (role: UserRole) => {
     setUserRole(role);
-    setProfile((prev) => ({ ...prev, role }));
+    if (sessionUser && profile) {
+      const dbRole = role === 'donate' ? 'DONATOR' : 'RESCUER';
+      await supabase.from('users').update({ role: dbRole }).eq('id', sessionUser.id);
+      setProfile({ ...profile, role: role });
+    }
   };
 
   const handleRoleContinue = () => {
@@ -50,7 +106,7 @@ export default function App() {
     if (userRole === 'rescue') {
       setCurrentScreen('rescuer_map');
     } else {
-      if (!profile.isOnboarded) {
+      if (!profile?.isOnboarded) {
         setCurrentScreen('donator_onboarding');
       } else {
         setCurrentScreen('dashboard');
@@ -59,20 +115,14 @@ export default function App() {
   };
 
   const handleCreateOrUpdateListing = async (itemData: Omit<DonationItem, 'id' | 'createdAt' | 'totalQuantity'> & { availableQuantity: number }) => {
+    if (!profile) return;
+    
     if (editingItem) {
-      setDonations((prev) =>
-        prev.map((item) =>
-          item.id === editingItem.id ? { ...item, ...itemData } : item
-        )
-      );
+      // For now we don't have update API logic, skip edit flow to keep simple or just recreate
       setEditingItem(null);
     } else {
-      const newItem = await api.createDonation(itemData);
-      setDonations((prev) => [newItem, ...prev]);
-      setProfile((prev) => ({
-        ...prev,
-        mealsDonated: prev.mealsDonated + itemData.availableQuantity,
-      }));
+      await api.createDonation(profile.id, itemData);
+      refreshData(profile.id);
     }
   };
 
@@ -92,17 +142,15 @@ export default function App() {
   };
 
   const handleConfirmClaim = async (item: DonationItem, quantity: number) => {
-    const updatedItem = await api.claimDonation(item.id, quantity);
-    
-    setDonations((prev) =>
-      prev.map((d) => (d.id === item.id ? updatedItem : d))
-    );
+    if (!profile) return;
+    await api.claimDonation(item.id, profile.id, quantity);
+    refreshData(profile.id);
     
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
         title: 'Collection Confirmed! 🚚',
-        message: `You're collecting ${quantity} meal${quantity > 1 ? 's' : ''} from "${item.title}". Head to ${item.location}.`,
+        message: `You're collecting ${quantity} meal${quantity > 1 ? 's' : ''} from "${item.title}".`,
         time: 'Just now',
         read: false,
         type: 'claim' as const,
@@ -116,46 +164,27 @@ export default function App() {
   };
 
   const handleAuthSuccess = (name: string, email: string) => {
-    setProfile((prev) => ({
-      ...prev,
-      name,
-      email,
-    }));
-    setIsAuthenticated(true);
-    // After auth, go to role selection if not yet selected
+    // Session state takes over automatically, we just navigate based on the current state if needed
     if (!hasSelectedRole) {
       setCurrentScreen('role_selection');
     } else {
-      // Already picked a role before, go to appropriate screen
       if (userRole === 'rescue') {
         setCurrentScreen('rescuer_map');
       } else {
-        setCurrentScreen(profile.isOnboarded ? 'dashboard' : 'donator_onboarding');
+        setCurrentScreen(profile?.isOnboarded ? 'dashboard' : 'donator_onboarding');
       }
     }
   };
 
-  const handleOnboardingComplete = (onboardingData: Partial<DonatorProfile>) => {
-    setProfile(prev => ({
-      ...prev,
-      ...onboardingData,
-      isOnboarded: true
-    }));
-    
-    const newDonator: DonatorProfile = {
-      id: `donor-${Date.now()}`,
-      businessName: onboardingData.businessName || profile.name,
-      lat: onboardingData.lat || 31.2240,
-      lng: onboardingData.lng || 75.7708,
-      categories: onboardingData.categories || [],
-      avatarUrl: profile.storeAvatarUrl || profile.avatarUrl
-    };
-    
-    setDonators(prev => [newDonator, ...prev]);
+  const handleOnboardingComplete = async (onboardingData: Partial<DonatorProfile>) => {
+    if (!profile) return;
+    await api.onboardDonator(profile.id, onboardingData);
+    await refreshData(profile.id);
     setCurrentScreen('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
     setHasSelectedRole(false);
     setCurrentScreen('landing');
@@ -166,14 +195,13 @@ export default function App() {
   };
 
   const handleNavigate = (screen: ScreenType) => {
-    // Guard auth-required screens
     const authRequiredScreens: ScreenType[] = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map', 'role_selection', 'donator_onboarding'];
     if (authRequiredScreens.includes(screen) && !isAuthenticated) {
       setCurrentScreen('signup');
       return;
     }
     
-    if (screen === 'dashboard' && userRole === 'donate' && !profile.isOnboarded) {
+    if (screen === 'dashboard' && userRole === 'donate' && !profile?.isOnboarded) {
       setCurrentScreen('donator_onboarding');
       return;
     }
@@ -187,7 +215,6 @@ export default function App() {
   const showBottomNav = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map'].includes(currentScreen);
   const headerVariant = currentScreen === 'profile' ? 'profile' : 'standard';
 
-  // Determine bottom nav variant based on role
   const getBottomNavVariant = (): 'center-plus' | 'side-plus' => {
     if (userRole === 'rescue') return 'side-plus';
     if (['profile', 'donations'].includes(currentScreen)) return 'side-plus';
@@ -197,10 +224,9 @@ export default function App() {
   return (
     <>
       <div className="min-h-screen bg-[#edece8] text-[#191c19] flex flex-col items-center">
-        {/* Main Container */}
         <div className="w-full flex-1 bg-[#fdfaf5] min-h-screen shadow-md transition-all flex flex-col">
-        {/* App Header */}
-        {showHeader && (
+        
+        {showHeader && profile && (
           <Header
             currentScreen={currentScreen}
             role={userRole}
@@ -214,7 +240,6 @@ export default function App() {
           />
         )}
 
-        {/* Screens */}
         <main className="relative flex-1 flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
@@ -260,14 +285,14 @@ export default function App() {
                 />
               )}
 
-              {currentScreen === 'donator_onboarding' && (
+              {currentScreen === 'donator_onboarding' && profile && (
                 <DonatorOnboardingScreen
                   profile={profile}
                   onComplete={handleOnboardingComplete}
                 />
               )}
 
-              {currentScreen === 'dashboard' && (
+              {currentScreen === 'dashboard' && profile && (
                 <DonatorDashboard
                   profile={profile}
                   donations={donations}
@@ -283,7 +308,7 @@ export default function App() {
 
               {currentScreen === 'donations' && (
                 <DonationsScreen
-                  activeDonations={donations.filter((d) => d.status === 'available')}
+                  activeDonations={donations}
                   historyDonations={historyDonations}
                   onOpenCreate={() => {
                     setEditingItem(null);
@@ -294,14 +319,14 @@ export default function App() {
                 />
               )}
 
-              {currentScreen === 'profile' && (
+              {currentScreen === 'profile' && profile && (
                 <ProfileScreen
                   profile={profile}
                   onNavigate={handleNavigate}
                 />
               )}
 
-              {currentScreen === 'impact' && (
+              {currentScreen === 'impact' && profile && (
                 <ImpactScreen profile={profile} />
               )}
 
@@ -324,7 +349,6 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {/* Floating Bottom Navigation */}
         {showBottomNav && (
           <BottomNav
             currentScreen={currentScreen}
@@ -339,7 +363,6 @@ export default function App() {
         )}
       </div>
 
-      {/* Interactive Modals */}
       <CreateListingModal
         isOpen={isCreateOpen}
         onClose={() => {
@@ -347,7 +370,7 @@ export default function App() {
           setEditingItem(null);
         }}
         onSaveListing={handleCreateOrUpdateListing}
-        profile={profile}
+        profile={profile!}
         initialItem={editingItem}
       />
 

@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, CheckCircle2, Heart, Plus, Truck, Users } from 'lucide-react';
-import { HERO_IMAGE, VOLUNTEERS_IMAGE } from '../data/mockData';
 import { ScreenType, UserRole } from '../types';
+
+const HERO_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBL_n6-n8E0OAeTCrj1zhkVZYQbyOuAVuw0TviykNbBjqQq_Ga4i1QjNC9rtn6yW9MNMbhDH4xv0cIDi15q7WLu7-HFO7hF35_RH_PoHHrr31ICPHXrKN73SqQoUyAfe94nLjHWO94fZG5CG_ekXDDHAG1Plsllhf7YAv7lao52pjXyQI4uUjcdAPIhTfmp9soROVMFlVjcqN0s8se35UZZRa5jbhYG9tDt4Y5X0p1JUk9CP3UGhcuP';
+const VOLUNTEERS_IMAGE = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBwAvrOOT210YJK4IOfRiWk1eEJPvU5MKpWLmFLOMIixBFhGPe_hj0BdyFT1YLopzV234Ca_ZklXRbhcX06iD7pp_4ZbyOLfTSXY51gnUEkbUZuf_WrnEVGTzUts-Vuu7VDg9B43x8bYbhYGtrsP5_A0U2Yyyd5jXtXmo2DTJAJvmmz50JzyTsU-1tPCwPO7JbLfA4KC4tpoDpD5KQQRyVEt73baoUrUNcDfd7oKk4AEyS6kkGnIaMS';
+
 import { HowItWorks } from './ui/how-it-works';
 import { RuixenGradientFooter } from './ui/ruixen-gradient-footer';
 

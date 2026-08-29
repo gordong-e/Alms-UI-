@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { X, Camera, Clock, Utensils, MapPin, Sparkles, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DonationItem, UserProfile } from '../types';
-import { BAKERY_IMAGE_1, BAKERY_BASKET_IMAGE, PRODUCE_STAND_IMAGE, ROOT_VEGGIE_IMAGE } from '../data/mockData';
+
+const BAKERY_IMAGE_1 = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80';
+const BAKERY_BASKET_IMAGE = 'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&w=800&q=80';
+const PRODUCE_STAND_IMAGE = 'https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=800&q=80';
+const ROOT_VEGGIE_IMAGE = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
 
 interface CreateListingModalProps {
   isOpen: boolean;

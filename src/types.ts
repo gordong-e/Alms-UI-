@@ -14,12 +14,17 @@ export type ScreenType =
 export type UserRole = 'donate' | 'rescue';
 
 export interface DonatorProfile {
-  id: string;
+  id: string; // References users.id
   businessName: string;
+  phone: string;
+  address: string;
   lat: number;
   lng: number;
   categories: string[];
-  avatarUrl?: string;
+  avatarUrl?: string; // Stored in users or auth metadata
+  mealsDonated: number;
+  kgSaved: number;
+  createdAt: string;
 }
 
 export interface DonationItem {
@@ -47,16 +52,19 @@ export interface DonationItem {
 }
 
 export interface UserProfile {
+  id: string;
   name: string;
   email: string;
   role: UserRole;
   avatarUrl: string;
-  storeAvatarUrl: string;
-  organizationName: string;
+  storeAvatarUrl: string; // We can derive this if they have a donator profile
+  organizationName: string; // Equivalent to businessName
   verified: boolean;
-  memberSince: string;
+  memberSince: string; // derived from created_at
   mealsDonated: number;
-  kgRescued: number;
+  kgSaved: number; // for donator role
+  mealsReceived: number; // for rescuer role
+  kgRescued: number; // for rescuer role
   currentBadge: string;
   nextBadge: string;
   badgeProgress: number;

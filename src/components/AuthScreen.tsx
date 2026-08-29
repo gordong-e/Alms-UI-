@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 interface AuthScreenProps {
   initialMode?: 'signup' | 'login';
@@ -18,14 +19,42 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Replace with real auth API call
-    setTimeout(() => {
+    setErrorMsg('');
+    
+    try {
+      if (mode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: fullName,
+              role: 'UNASSIGNED',
+            }
+          }
+        });
+        if (error) throw error;
+        onAuthSuccess(fullName, email);
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
+        // The App component will pick up the auth state change and route accordingly
+        onAuthSuccess(data.user?.user_metadata?.name || 'User', email);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'Authentication failed');
+    } finally {
       setIsLoading(false);
-      onAuthSuccess(fullName || 'Sarah Mitchell', email || 'sarah@example.com');
-    }, 600);
+    }
   };
 
   const handleGoogleAuth = () => {
@@ -151,6 +180,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
               />
             </div>
           </div>
+
+          {/* Error Message */}
+          {errorMsg && (
+            <div className="text-red-500 text-xs font-semibold bg-red-50 p-3 rounded-xl border border-red-100">
+              {errorMsg}
+            </div>
+          )}
 
           {/* Primary Action Button */}
           <div className="flex flex-col gap-3 mt-2">
