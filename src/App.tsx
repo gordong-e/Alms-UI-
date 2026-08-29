@@ -75,6 +75,22 @@ export default function App() {
       if (p.role !== 'UNASSIGNED') {
         setHasSelectedRole(true);
         setUserRole(p.role === 'DONATOR' ? 'donate' : 'rescue');
+        
+        // Auto-redirect if we just landed on the site (e.g. from OAuth redirect)
+        setCurrentScreen(prev => {
+          if (['landing', 'login', 'signup'].includes(prev)) {
+            if (p.role === 'RESCUER') return 'rescuer_map';
+            return p.isOnboarded ? 'dashboard' : 'donator_onboarding';
+          }
+          return prev;
+        });
+      } else {
+        setCurrentScreen(prev => {
+          if (['landing', 'login', 'signup'].includes(prev)) {
+            return 'role_selection';
+          }
+          return prev;
+        });
       }
     } catch (err) {
       console.error("Failed to load user data:", err);
