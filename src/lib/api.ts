@@ -49,11 +49,10 @@ export const api = {
     };
   },
 
-  // --- Donators ---
   async getDonators(): Promise<DonatorProfile[]> {
     const { data, error } = await supabase.from('donators').select('*');
     if (error) throw error;
-    return data.map((d: any) => ({
+    return (data || []).map((d: any) => ({
       id: d.id,
       businessName: d.business_name,
       phone: d.phone,
@@ -107,7 +106,7 @@ export const api = {
       
     if (error) throw error;
     
-    return data.map((d: any) => ({
+    return (data || []).map((d: any) => ({
       id: d.id,
       title: d.title,
       description: d.description,
@@ -142,7 +141,7 @@ export const api = {
     const { data, error } = await query;
     if (error) throw error;
     
-    return data.map((d: any) => ({
+    return (data || []).map((d: any) => ({
       id: d.id,
       title: d.title,
       description: d.description,
