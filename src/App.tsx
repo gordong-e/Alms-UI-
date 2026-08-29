@@ -138,14 +138,17 @@ export default function App() {
       if (profile) {
         setProfile({ ...profile, role: role });
         
-        if (role === 'rescue' && !profile.personaVerified) {
-          setShowPersona(true);
-        }
+        // Moved persona check to handleRoleContinue to prevent popups on selection
       }
     }
   };
 
   const handleRoleContinue = () => {
+    if (userRole === 'rescue' && profile && !profile.personaVerified) {
+      setShowPersona(true);
+      return; // Do not proceed until verified
+    }
+
     setHasSelectedRole(true);
     if (userRole === 'rescue') {
       setCurrentScreen('rescuer_map');
@@ -466,6 +469,14 @@ export default function App() {
           setShowPersona(false);
           if (profile) {
             setProfile({ ...profile, personaVerified: true });
+            
+            // Automatically proceed to the next screen now that they are verified
+            if (currentScreen === 'role_selection' && userRole === 'rescue') {
+              setHasSelectedRole(true);
+              setCurrentScreen('rescuer_map');
+            } else if (isClaimOpen || isCreateOpen) {
+              // They were trying to perform an action, they can now retry it
+            }
           }
         }}
         profile={profile}
