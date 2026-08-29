@@ -254,6 +254,8 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
+    setProfile(null);
+    setSessionUser(null);
     setHasSelectedRole(false);
     setCurrentScreen('landing');
   };
@@ -385,6 +387,7 @@ export default function App() {
                 <ProfileScreen
                   profile={profile}
                   onNavigate={handleNavigate}
+                  onLogout={handleLogout}
                 />
               )}
 
