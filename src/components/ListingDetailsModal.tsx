@@ -144,28 +144,7 @@ export const ListingDetailsModal: React.FC<ListingDetailsModalProps> = ({
             </div>
           </div>
 
-          {/* QR Code Verification Section */}
-          {showQr ? (
-            <div className="bg-[#f9faf4] rounded-2xl p-5 text-center border border-gray-100 space-y-3">
-              <p className="text-xs font-bold text-[#0a3c1a]">Pickup Verification QR</p>
-              <div className="w-36 h-36 bg-white p-2 rounded-xl mx-auto shadow-inner flex items-center justify-center border border-gray-200">
-                {/* SVG Mock QR */}
-                <svg className="w-full h-full text-[#0a3c1a]" viewBox="0 0 100 100" fill="currentColor">
-                  <path d="M10 10h30v30h-30z M15 15v20h20v-20z M20 20h10v10h-10z M60 10h30v30h-30z M65 15v20h20v-20z M70 20h10v10h-10z M10 60h30v30h-30z M15 65v20h20v-20z M20 70h10v10h-10z M60 60h10v10h-10z M75 60h15v10h-15z M60 75h20v15h-20z M85 75h5v15h-5z" />
-                </svg>
-              </div>
-              <p className="text-[11px] text-gray-400 font-mono">TOKEN: NR-2024-RESCUE-{item.id.toUpperCase()}</p>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowQr(true)}
-              className="w-full py-2.5 px-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-center gap-2 border border-gray-200"
-            >
-              <QrCode className="w-4 h-4" />
-              Show Pickup QR Code
-            </button>
-          )}
+
 
           {/* Action Buttons */}
           <div className="pt-2 flex gap-3">
