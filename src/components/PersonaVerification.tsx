@@ -25,6 +25,7 @@ export const PersonaVerification: React.FC<PersonaVerificationProps> = ({
     clientRef.current = new Persona.Client({
       templateId: 'itmpl_AsJ1aGfFZbi1D1yYdhxtAH9jQ3uzoR',
       environmentId: 'env_AsJ1aGfMNSAFjgAEsyVPx5D8fQM9Mw',
+      environment: 'sandbox',
       referenceId: profile.id, // Link inquiry to this user
       fields: {
         nameFirst: profile.name.split(' ')[0] || '',
@@ -59,9 +60,12 @@ export const PersonaVerification: React.FC<PersonaVerificationProps> = ({
     });
 
     return () => {
-      clientRef.current = null;
+      if (clientRef.current) {
+        clientRef.current.destroy();
+        clientRef.current = null;
+      }
     };
-  }, [profile]); // Removed dependencies that would cause re-initialization loops
+  }, [profile]);
 
   // Open the flow if the component is told to open and the client is ready
   useEffect(() => {
