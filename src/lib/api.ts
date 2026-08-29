@@ -116,7 +116,7 @@ export const api = {
     const { data, error } = await supabase
       .from('donations')
       .select('*, donator:donator_id ( business_name, address )')
-      .eq('status', 'AVAILABLE')
+      .eq('status', 'available')
       .order('created_at', { ascending: false });
       
     if (error) throw error;
@@ -146,7 +146,7 @@ export const api = {
     let query = supabase
       .from('donations')
       .select('*, donator:donator_id ( business_name, address )')
-      .in('status', ['CLAIMED', 'COMPLETED'])
+      .in('status', ['claimed', 'completed'])
       .order('created_at', { ascending: false });
 
     if (donatorId) {
@@ -190,7 +190,7 @@ export const api = {
       instructions: item.instructions,
       lat: item.lat,
       lng: item.lng,
-      status: 'AVAILABLE'
+      status: 'available'
     }).select('*, donator:donator_id ( business_name, address )').single();
 
     if (error) throw error;
@@ -222,7 +222,7 @@ export const api = {
       donation_id: donationId,
       rescuer_id: rescuerId,
       claimed_quantity: claimQuantity,
-      status: 'PENDING'
+      status: 'pending'
     }).select().single();
 
     if (error) throw error;
