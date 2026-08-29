@@ -96,7 +96,7 @@ export const api = {
       currentBadge: 'Silver Saver',
       nextBadge: 'Gold',
       badgeProgress: 75,
-      bio: '',
+      bio: donatorData?.bio || 'Passionate about fighting food waste and feeding the community.',
       phone: donatorData?.phone || '',
       address: donatorData?.address || '',
       isOnboarded: !!donatorData,
@@ -106,6 +106,23 @@ export const api = {
       _dbRole: userData.role,
     };
     return result;
+  },
+
+  async updateDonatorProfile(userId: string, updates: Partial<DonatorProfile>): Promise<void> {
+    const { error } = await supabase
+      .from('donators')
+      .update({
+        business_name: updates.businessName,
+        bio: updates.bio,
+        phone: updates.phone,
+        address: updates.address,
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('updateDonatorProfile error:', error);
+      throw error;
+    }
   },
 
   async getDonators(): Promise<DonatorProfile[]> {

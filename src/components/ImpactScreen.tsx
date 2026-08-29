@@ -35,25 +35,25 @@ export const ImpactScreen: React.FC<ImpactScreenProps> = ({ profile }) => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 my-2">
           <div>
             <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              {profile.mealsDonated.toLocaleString()}
+              {(profile.role === 'donate' ? profile.mealsDonated : profile.mealsReceived).toLocaleString()}
             </div>
-            <p className="text-xs text-white/70 mt-0.5">Meals Distributed</p>
+            <p className="text-xs text-white/70 mt-0.5">Meals {profile.role === 'donate' ? 'Distributed' : 'Received'}</p>
           </div>
           <div>
             <div className="text-3xl sm:text-4xl font-extrabold text-[#b9f02c] tracking-tight">
-              {profile.kgRescued.toLocaleString()} <span className="text-xl">kg</span>
+              {(profile.role === 'donate' ? profile.kgSaved : profile.kgRescued).toLocaleString()} <span className="text-xl">kg</span>
             </div>
             <p className="text-xs text-white/70 mt-0.5">Surplus Food Saved</p>
           </div>
           <div className="hidden sm:block">
             <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              {Math.round(profile.kgRescued * 2.5).toLocaleString()}
+              {Math.round((profile.role === 'donate' ? profile.kgSaved : profile.kgRescued) * 2.5).toLocaleString()}
             </div>
             <p className="text-xs text-white/70 mt-0.5">kg CO₂e Avoided</p>
           </div>
           <div className="hidden sm:block">
             <div className="text-3xl sm:text-4xl font-extrabold text-cyan-300 tracking-tight">
-              {Math.round((profile.kgRescued * 182) / 1000)}K
+              {Math.round(((profile.role === 'donate' ? profile.kgSaved : profile.kgRescued) * 182) / 1000)}K
             </div>
             <p className="text-xs text-white/70 mt-0.5">L Water Conserved</p>
           </div>
@@ -63,11 +63,11 @@ export const ImpactScreen: React.FC<ImpactScreenProps> = ({ profile }) => {
         <div className="sm:hidden mt-6 pt-4 border-t border-white/15 grid grid-cols-2 gap-3 text-xs text-white/80">
           <div className="flex items-center gap-2">
             <Leaf className="w-4 h-4 text-[#b9f02c]" />
-            <span>{Math.round(profile.kgRescued * 2.5).toLocaleString()} kg CO₂e avoided</span>
+            <span>{Math.round((profile.role === 'donate' ? profile.kgSaved : profile.kgRescued) * 2.5).toLocaleString()} kg CO₂e avoided</span>
           </div>
           <div className="flex items-center gap-2">
             <Droplets className="w-4 h-4 text-cyan-300" />
-            <span>{(profile.kgRescued * 182).toLocaleString()} L water conserved</span>
+            <span>{((profile.role === 'donate' ? profile.kgSaved : profile.kgRescued) * 182).toLocaleString()} L water conserved</span>
           </div>
         </div>
       </div>
