@@ -7,7 +7,8 @@ export type ScreenType =
   | 'donations' 
   | 'profile' 
   | 'impact' 
-  | 'rescuer_feed';
+  | 'rescuer_feed'
+  | 'rescuer_map';
 
 export type UserRole = 'donate' | 'rescue';
 
@@ -29,6 +30,9 @@ export interface DonationItem {
   pickupWindow: string;
   instructions?: string;
   rescuingBy?: string;
+  lat: number;
+  lng: number;
+  claimedQuantity?: number;
 }
 
 export interface UserProfile {

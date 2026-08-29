@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Share2, Sparkles, CheckCircle, ChevronDown, User, HeartHandshake, LogOut } from 'lucide-react';
+import { Bell, Share2, LogOut, ChevronDown } from 'lucide-react';
 import { ScreenType, UserRole, UserProfile, NotificationItem } from '../types';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   onNavigate: (screen: ScreenType) => void;
   onRoleToggle: () => void;
   onClearNotifications: () => void;
+  onLogout?: () => void;
   variant?: 'standard' | 'profile' | 'plain';
 }
 
@@ -21,10 +22,12 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   onRoleToggle,
   onClearNotifications,
+  onLogout,
   variant = 'standard',
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleShare = () => {
@@ -46,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Left side: Avatar + Brand Title */}
       <div 
         className="flex items-center gap-3 cursor-pointer group"
-        onClick={() => onNavigate('dashboard')}
+        onClick={() => onNavigate(role === 'rescue' ? 'rescuer_map' : 'dashboard')}
       >
         {variant === 'profile' ? (
           <div className="w-10 h-10 rounded-full bg-[#0a3c1a] text-[#ccf148] font-bold flex items-center justify-center text-sm shadow-sm">
@@ -162,6 +165,48 @@ export const Header: React.FC<HeaderProps> = ({
                     Close
                   </button>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Profile / Logout menu */}
+        {onLogout && (
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 text-gray-500 hover:text-[#0a3c1a] hover:bg-black/5 rounded-full transition-colors"
+              aria-label="Menu"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-100">
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onRoleToggle();
+                    if (role === 'donate') {
+                      onNavigate('rescuer_map');
+                    } else {
+                      onNavigate('dashboard');
+                    }
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Switch to {role === 'donate' ? 'Rescuer' : 'Donator'}
+                </button>
+                <div className="border-t border-gray-100" />
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    onLogout();
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Log Out
+                </button>
               </div>
             )}
           </div>

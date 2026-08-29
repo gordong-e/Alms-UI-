@@ -30,6 +30,7 @@ export const initialProfile: UserProfile = {
   address: '428 Market Street, Downtown Arts District',
 };
 
+// Coordinates centered around a realistic city area (San Francisco-like)
 export const initialDonations: DonationItem[] = [
   {
     id: 'don-1',
@@ -44,10 +45,12 @@ export const initialDonations: DonationItem[] = [
     donorName: 'Green Market Bakery',
     donorAvatar: STOREFRONT_IMAGE,
     location: '428 Market Street',
-    distance: '0.8 miles away',
+    distance: '0.8 mi',
     createdAt: 'Today, 8:30 AM',
     pickupWindow: 'Today between 10:00 AM - 1:00 PM',
     instructions: 'Ring back loading dock bell or ask for Sarah at front counter. Bring clean bakery totes.',
+    lat: 37.7905,
+    lng: -122.4007,
   },
   {
     id: 'don-2',
@@ -62,10 +65,12 @@ export const initialDonations: DonationItem[] = [
     donorName: 'Valley Organic Farmstand',
     donorAvatar: USER_AVATAR,
     location: '150 Elm Street',
-    distance: '1.4 miles away',
+    distance: '1.4 mi',
     createdAt: 'Today, 9:15 AM',
     pickupWindow: 'Today between 11:00 AM - 3:00 PM',
     instructions: 'Items are pre-boxed in 3 sanitized crates near produce staging area.',
+    lat: 37.7849,
+    lng: -122.4094,
   },
   {
     id: 'don-3',
@@ -79,10 +84,12 @@ export const initialDonations: DonationItem[] = [
     status: 'available',
     donorName: 'Artisan Hearth Co.',
     location: '210 Pine Boulevard',
-    distance: '2.1 miles away',
+    distance: '2.1 mi',
     createdAt: 'Today, 7:00 AM',
     pickupWindow: 'Today by 2:00 PM',
     instructions: 'Park in designated commercial spot. Ask for manager at register.',
+    lat: 37.7921,
+    lng: -122.3998,
   },
   {
     id: 'don-4',
@@ -96,10 +103,12 @@ export const initialDonations: DonationItem[] = [
     status: 'available',
     donorName: 'Green Market Rescue',
     location: '428 Market Street',
-    distance: '0.5 miles away',
+    distance: '0.5 mi',
     createdAt: 'Today, 6:45 AM',
     pickupWindow: 'Today until 7:00 PM',
     instructions: 'Stored in walk-in cooler 2. Loading bay entrance accessible on 5th Ave.',
+    lat: 37.7882,
+    lng: -122.4075,
   },
   {
     id: 'don-5',
@@ -113,10 +122,12 @@ export const initialDonations: DonationItem[] = [
     status: 'available',
     donorName: 'Metro Events Center',
     location: '88 Convention Plaza',
-    distance: '3.0 miles away',
+    distance: '3.0 mi',
     createdAt: 'Today, 11:00 AM',
     pickupWindow: 'Today 1:00 PM - 3:30 PM',
     instructions: 'Commercial kitchen door #4. Security badge pass provided upon arrival.',
+    lat: 37.7835,
+    lng: -122.3925,
   },
 ];
 
@@ -136,6 +147,8 @@ export const initialHistoryDonations: DonationItem[] = [
     createdAt: 'Yesterday',
     pickupWindow: 'Completed at 2:15 PM',
     rescuingBy: 'Hope Harbor Shelter (Driver: Marcus)',
+    lat: 37.7905,
+    lng: -122.4007,
   },
   {
     id: 'hist-2',
@@ -152,6 +165,8 @@ export const initialHistoryDonations: DonationItem[] = [
     createdAt: '3 days ago',
     pickupWindow: 'Completed at 11:30 AM',
     rescuingBy: 'Eastside Food Bank (Driver: Elena)',
+    lat: 37.7905,
+    lng: -122.4007,
   },
 ];
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Heart, Plus, Truck, Users, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Heart, Plus, Truck, Users } from 'lucide-react';
 import { HERO_IMAGE, VOLUNTEERS_IMAGE } from '../data/mockData';
 import { ScreenType, UserRole } from '../types';
 
@@ -26,19 +26,37 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20 flex flex-col justify-end p-6">
+            {/* Brand */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-[#0a3c1a] text-[#ccf148] flex items-center justify-center shadow-sm">
+                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                </svg>
+              </div>
+              <span className="text-white/90 font-bold text-lg tracking-tight">NourishResq</span>
+            </div>
+
             <h1 className="text-white text-4xl font-extrabold leading-tight mb-3 tracking-tight">
               Fight Waste,<br />Feed<br />Community
             </h1>
             <p className="text-white/90 text-sm mb-6 max-w-sm leading-relaxed">
-              Join the movement to rescue perfectly good food and distribute it to those who need it most. Every meal saved is a step towards a sustainable future.
+              Join the movement to rescue perfectly good food and distribute it to those who need it most.
             </p>
-            <button
-              onClick={() => onNavigate('role_selection')}
-              className="bg-[#0a3c1a] text-white font-semibold py-3.5 px-6 rounded-full inline-flex items-center justify-center gap-2 w-max shadow-lg hover:bg-[#125828] active:scale-95 transition-all text-sm"
-            >
-              Get Started
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onNavigate('signup')}
+                className="bg-[#b9f02c] text-[#0a3c1a] font-bold py-3.5 px-6 rounded-full inline-flex items-center justify-center gap-2 w-max shadow-lg hover:bg-[#c9fb40] active:scale-95 transition-all text-sm"
+              >
+                Get Started
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onNavigate('login')}
+                className="text-white/90 font-semibold text-sm hover:text-white underline underline-offset-2 transition-colors"
+              >
+                Log In
+              </button>
+            </div>
           </div>
         </section>
 
@@ -61,68 +79,43 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
           </div>
         </section>
 
-        {/* Call to Action - Donate Card */}
-        <section className="bg-[#0a3c1a] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-          <div className="mb-4 text-[#b9f02c]">
-            <Heart className="w-8 h-8 stroke-[1.8]" />
-          </div>
-          <h3 className="text-xl font-bold mb-1.5">Have food to donate?</h3>
-          <p className="text-white/80 text-sm mb-6 leading-relaxed">
-            Local partners are ready to pick up your surplus.
-          </p>
-          <button
-            onClick={() => {
-              onSetRole('donate');
-              onOpenCreate();
-            }}
-            className="text-sm font-semibold flex items-center gap-2 hover:text-[#b9f02c] transition-colors group"
-          >
-            List a Donation
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </section>
-
         {/* How It Works */}
         <section className="py-6">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-[#0a3c1a] mb-2 tracking-tight">How It Works</h2>
             <p className="text-gray-500 text-sm max-w-xs mx-auto">
-              A seamless platform connecting abundance with need in three simple steps.
+              Connecting abundance with need in three simple steps.
             </p>
           </div>
 
           <div className="space-y-4">
-            {/* Step 1 */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center flex flex-col items-center">
               <div className="w-14 h-14 bg-[#b9f02c] rounded-full flex items-center justify-center mb-4 text-[#0a3c1a] shadow-sm">
                 <Plus className="w-6 h-6 stroke-[2.5]" />
               </div>
-              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">1. Post Surplus Food</h4>
+              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">1. Donators Log Surplus</h4>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Donators (restaurants, grocers, farms) quickly list available food that is perfectly good but might otherwise go to waste.
+                Restaurants, grocers, and individuals quickly log their extra food for the day — what they have and how much.
               </p>
             </div>
 
-            {/* Step 2 */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center flex flex-col items-center">
               <div className="w-14 h-14 bg-[#b9f02c] rounded-full flex items-center justify-center mb-4 text-[#0a3c1a] shadow-sm">
                 <Truck className="w-6 h-6 stroke-[2]" />
               </div>
-              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">2. Claim &amp; Rescue</h4>
+              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">2. Rescuers Find & Collect</h4>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Rescuers (volunteers or partner orgs) see real-time alerts, claim the donation, and pick it up efficiently.
+                Rescuers see nearby donations on a live map, choose what to collect, pick the quantity, and head over to pick it up.
               </p>
             </div>
 
-            {/* Step 3 */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center flex flex-col items-center">
               <div className="w-14 h-14 bg-[#b9f02c] rounded-full flex items-center justify-center mb-4 text-[#0a3c1a] shadow-sm">
                 <Users className="w-6 h-6 stroke-[2]" />
               </div>
-              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">3. Feed the Community</h4>
+              <h4 className="font-bold text-[#0a3c1a] mb-2 text-base">3. Community Gets Fed</h4>
               <p className="text-sm text-gray-500 leading-relaxed">
-                The rescued food is delivered directly to local pantries, shelters, and community centers to nourish those in need.
+                The rescued food reaches local pantries, shelters, and communities — nourishing those who need it most.
               </p>
             </div>
           </div>
@@ -132,7 +125,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
         <section className="py-6">
           <h2 className="text-2xl font-bold text-[#0a3c1a] mb-3 tracking-tight">Why NourishResq?</h2>
           <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-            We believe that solving hunger and reducing environmental impact go hand-in-hand. By bridging the gap between excess and scarcity, we empower communities to support each other sustainably.
+            We believe solving hunger and reducing environmental impact go hand-in-hand. By bridging the gap between excess and scarcity, we empower communities to support each other sustainably.
           </p>
 
           <ul className="space-y-4 mb-8">
@@ -187,38 +180,25 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({
             Ready to Make<br />a Difference?
           </h2>
           <p className="text-white/80 text-sm mb-8 max-w-xs leading-relaxed">
-            Whether you have food to give, time to volunteer, or are part of an organization in need, there's a place for you here.
+            Whether you have food to give or time to volunteer, there's a place for you here.
           </p>
 
           <div className="w-full space-y-3 mb-10">
             <button
-              onClick={() => {
-                onSetRole('donate');
-                onNavigate('dashboard');
-              }}
+              onClick={() => onNavigate('signup')}
               className="w-full bg-[#b9f02c] text-[#0a3c1a] font-bold py-4 px-6 rounded-2xl shadow-sm hover:opacity-95 active:scale-[0.99] transition-all"
             >
-              Join as a Donator
+              Sign Up — It's Free
             </button>
             <button
-              onClick={() => {
-                onSetRole('rescue');
-                onNavigate('rescuer_feed');
-              }}
+              onClick={() => onNavigate('login')}
               className="w-full bg-transparent border border-white text-white font-bold py-4 px-6 rounded-2xl hover:bg-white/10 active:scale-[0.99] transition-colors"
             >
-              Become a Rescuer
+              I Already Have an Account
             </button>
           </div>
 
           <div className="w-full border-t border-white/20 pt-6">
-            <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-6 text-sm">
-              <button onClick={() => onNavigate('landing')} className="text-white font-semibold hover:underline">About</button>
-              <button onClick={() => { onSetRole('donate'); onNavigate('dashboard'); }} className="text-white font-semibold hover:underline">Donators</button>
-              <button onClick={() => { onSetRole('rescue'); onNavigate('rescuer_feed'); }} className="text-white font-semibold hover:underline">Rescuers</button>
-              <button onClick={() => onNavigate('profile')} className="text-white font-semibold hover:underline">Impact</button>
-              <button onClick={() => onNavigate('signup')} className="text-white font-semibold hover:underline">Sign In</button>
-            </nav>
             <p className="text-white/50 text-xs">
               © 2024 NourishResq. All rights reserved.
             </p>

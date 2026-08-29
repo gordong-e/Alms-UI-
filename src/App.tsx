@@ -10,13 +10,17 @@ import { DonationsScreen } from './components/DonationsScreen';
 import { ProfileScreen } from './components/ProfileScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { ImpactScreen } from './components/ImpactScreen';
-import { RescuerFeedScreen } from './components/RescuerFeedScreen';
+import { RescuerMapScreen } from './components/RescuerMapScreen';
 import { CreateListingModal } from './components/CreateListingModal';
 import { ListingDetailsModal } from './components/ListingDetailsModal';
-import { ScreenSwitcherBar } from './components/ScreenSwitcherBar';
+import { ClaimModal } from './components/ClaimModal';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenType>('dashboard');
+  // Auth state — easy to replace with real auth later
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasSelectedRole, setHasSelectedRole] = useState(false);
+
+  const [currentScreen, setCurrentScreen] = useState<ScreenType>('landing');
   const [userRole, setUserRole] = useState<UserRole>('donate');
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
   const [donations, setDonations] = useState<DonationItem[]>(initialDonations);
@@ -26,19 +30,21 @@ export default function App() {
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isClaimOpen, setIsClaimOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DonationItem | null>(null);
   const [editingItem, setEditingItem] = useState<DonationItem | null>(null);
-  const [isMobileFrame, setIsMobileFrame] = useState(false);
 
-  // Handlers
+  // ── Handlers ──
+
   const handleRoleSelection = (role: UserRole) => {
     setUserRole(role);
     setProfile((prev) => ({ ...prev, role }));
   };
 
   const handleRoleContinue = () => {
+    setHasSelectedRole(true);
     if (userRole === 'rescue') {
-      setCurrentScreen('rescuer_feed');
+      setCurrentScreen('rescuer_map');
     } else {
       setCurrentScreen('dashboard');
     }
@@ -76,21 +82,34 @@ export default function App() {
     setIsDetailsOpen(true);
   };
 
-  const handleClaimRescue = (item: DonationItem) => {
+  const handleSelectDonationForClaim = (item: DonationItem) => {
+    setSelectedItem(item);
+    setIsClaimOpen(true);
+  };
+
+  const handleConfirmClaim = (item: DonationItem, quantity: number) => {
     setDonations((prev) =>
-      prev.map((d) => (d.id === item.id ? { ...d, status: 'claimed' } : d))
+      prev.map((d) =>
+        d.id === item.id
+          ? { ...d, status: 'claimed' as const, claimedQuantity: quantity }
+          : d
+      )
     );
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
-        title: 'Rescue Claimed! 🚚',
-        message: `You claimed "${item.title}". Directions are now active.`,
+        title: 'Collection Confirmed! 🚚',
+        message: `You're collecting ${quantity} meal${quantity > 1 ? 's' : ''} from "${item.title}". Head to ${item.location}.`,
         time: 'Just now',
         read: false,
-        type: 'claim',
+        type: 'claim' as const,
       },
       ...prev,
     ]);
+  };
+
+  const handleClaimRescue = (item: DonationItem) => {
+    handleConfirmClaim(item, item.mealsCount);
   };
 
   const handleAuthSuccess = (name: string, email: string) => {
@@ -99,41 +118,53 @@ export default function App() {
       name,
       email,
     }));
-    setCurrentScreen('dashboard');
+    setIsAuthenticated(true);
+    // After auth, go to role selection if not yet selected
+    if (!hasSelectedRole) {
+      setCurrentScreen('role_selection');
+    } else {
+      // Already picked a role before, go to appropriate screen
+      setCurrentScreen(userRole === 'rescue' ? 'rescuer_map' : 'dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setHasSelectedRole(false);
+    setCurrentScreen('landing');
   };
 
   const handleClearNotifications = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  // Determine header and nav presentation
-  const showHeader = !['role_selection', 'signup', 'login'].includes(currentScreen);
-  const showBottomNav = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed'].includes(currentScreen);
+  const handleNavigate = (screen: ScreenType) => {
+    // Guard auth-required screens
+    const authRequiredScreens: ScreenType[] = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map', 'role_selection'];
+    if (authRequiredScreens.includes(screen) && !isAuthenticated) {
+      setCurrentScreen('signup');
+      return;
+    }
+    setCurrentScreen(screen);
+  };
+
+  // ── Presentation Logic ──
+
+  const showHeader = !['role_selection', 'signup', 'login', 'landing'].includes(currentScreen);
+  const showBottomNav = ['dashboard', 'donations', 'profile', 'impact', 'rescuer_feed', 'rescuer_map'].includes(currentScreen);
   const headerVariant = currentScreen === 'profile' ? 'profile' : 'standard';
-  const bottomNavVariant = ['profile', 'donations'].includes(currentScreen) ? 'side-plus' : 'center-plus';
+
+  // Determine bottom nav variant based on role
+  const getBottomNavVariant = (): 'center-plus' | 'side-plus' => {
+    if (userRole === 'rescue') return 'side-plus';
+    if (['profile', 'donations'].includes(currentScreen)) return 'side-plus';
+    return 'center-plus';
+  };
 
   return (
     <div className="min-h-screen bg-[#edece8] text-[#191c19] flex flex-col items-center">
-      {/* Top Preview Switcher Bar for direct reviewer jump to all 6 screens */}
-      <div className="w-full">
-        <ScreenSwitcherBar
-          currentScreen={currentScreen}
-          role={userRole}
-          onSelectScreen={setCurrentScreen}
-          onToggleRole={() => handleRoleSelection(userRole === 'donate' ? 'rescue' : 'donate')}
-          isMobileFrame={isMobileFrame}
-          onToggleMobileFrame={() => setIsMobileFrame(!isMobileFrame)}
-        />
-      </div>
-
-      {/* Main Container: Render full width or framed in mobile device viewport */}
-      <div
-        className={`w-full flex-1 transition-all ${
-          isMobileFrame
-            ? 'max-w-[430px] my-6 rounded-[40px] shadow-2xl border-[10px] border-[#1f2937] overflow-hidden bg-[#fdfaf5] min-h-[880px]'
-            : 'max-w-md bg-[#fdfaf5] min-h-screen shadow-md'
-        }`}
-      >
+      {/* Main Container */}
+      <div className="w-full flex-1 max-w-md bg-[#fdfaf5] min-h-screen shadow-md transition-all">
         {/* App Header */}
         {showHeader && (
           <Header
@@ -141,65 +172,24 @@ export default function App() {
             role={userRole}
             profile={profile}
             notifications={notifications}
-            onNavigate={setCurrentScreen}
+            onNavigate={handleNavigate}
             onRoleToggle={() => handleRoleSelection(userRole === 'donate' ? 'rescue' : 'donate')}
             onClearNotifications={handleClearNotifications}
+            onLogout={handleLogout}
             variant={headerVariant}
           />
         )}
 
         {/* Screens */}
         <main className="relative">
-          {currentScreen === 'role_selection' && (
-            <RoleSelectionScreen
-              selectedRole={userRole}
-              onSelectRole={handleRoleSelection}
-              onContinue={handleRoleContinue}
-            />
-          )}
-
           {currentScreen === 'landing' && (
             <LandingScreen
-              onNavigate={setCurrentScreen}
+              onNavigate={handleNavigate}
               onSetRole={handleRoleSelection}
               onOpenCreate={() => {
                 setEditingItem(null);
                 setIsCreateOpen(true);
               }}
-            />
-          )}
-
-          {currentScreen === 'dashboard' && (
-            <DonatorDashboard
-              profile={profile}
-              donations={donations}
-              onOpenCreate={() => {
-                setEditingItem(null);
-                setIsCreateOpen(true);
-              }}
-              onEditListing={handleEditListing}
-              onViewDetails={handleViewDetails}
-              onNavigate={setCurrentScreen}
-            />
-          )}
-
-          {currentScreen === 'donations' && (
-            <DonationsScreen
-              activeDonations={donations.filter((d) => d.status === 'available')}
-              historyDonations={historyDonations}
-              onOpenCreate={() => {
-                setEditingItem(null);
-                setIsCreateOpen(true);
-              }}
-              onEditListing={handleEditListing}
-              onViewDetails={handleViewDetails}
-            />
-          )}
-
-          {currentScreen === 'profile' && (
-            <ProfileScreen
-              profile={profile}
-              onNavigate={setCurrentScreen}
             />
           )}
 
@@ -219,15 +209,63 @@ export default function App() {
             />
           )}
 
+          {currentScreen === 'role_selection' && (
+            <RoleSelectionScreen
+              selectedRole={userRole}
+              onSelectRole={handleRoleSelection}
+              onContinue={handleRoleContinue}
+            />
+          )}
+
+          {currentScreen === 'dashboard' && (
+            <DonatorDashboard
+              profile={profile}
+              donations={donations}
+              onOpenCreate={() => {
+                setEditingItem(null);
+                setIsCreateOpen(true);
+              }}
+              onEditListing={handleEditListing}
+              onViewDetails={handleViewDetails}
+              onNavigate={handleNavigate}
+            />
+          )}
+
+          {currentScreen === 'donations' && (
+            <DonationsScreen
+              activeDonations={donations.filter((d) => d.status === 'available')}
+              historyDonations={historyDonations}
+              onOpenCreate={() => {
+                setEditingItem(null);
+                setIsCreateOpen(true);
+              }}
+              onEditListing={handleEditListing}
+              onViewDetails={handleViewDetails}
+            />
+          )}
+
+          {currentScreen === 'profile' && (
+            <ProfileScreen
+              profile={profile}
+              onNavigate={handleNavigate}
+            />
+          )}
+
           {currentScreen === 'impact' && (
             <ImpactScreen profile={profile} />
           )}
 
-          {currentScreen === 'rescuer_feed' && (
-            <RescuerFeedScreen
+          {currentScreen === 'rescuer_map' && (
+            <RescuerMapScreen
               donations={donations}
-              onViewDetails={handleViewDetails}
-              onClaimRescue={handleClaimRescue}
+              onSelectDonation={handleSelectDonationForClaim}
+            />
+          )}
+
+          {currentScreen === 'rescuer_feed' && (
+            <RescuerMapScreen
+              donations={donations}
+              onSelectDonation={handleSelectDonationForClaim}
             />
           )}
         </main>
@@ -236,12 +274,13 @@ export default function App() {
         {showBottomNav && (
           <BottomNav
             currentScreen={currentScreen}
-            onNavigate={setCurrentScreen}
+            userRole={userRole}
+            onNavigate={handleNavigate}
             onOpenCreate={() => {
               setEditingItem(null);
               setIsCreateOpen(true);
             }}
-            variant={bottomNavVariant}
+            variant={getBottomNavVariant()}
           />
         )}
       </div>
@@ -268,6 +307,16 @@ export default function App() {
         userRole={userRole}
         onClaimRescue={handleClaimRescue}
         onEditListing={handleEditListing}
+      />
+
+      <ClaimModal
+        isOpen={isClaimOpen}
+        onClose={() => {
+          setIsClaimOpen(false);
+          setSelectedItem(null);
+        }}
+        item={selectedItem}
+        onConfirmClaim={handleConfirmClaim}
       />
     </div>
   );

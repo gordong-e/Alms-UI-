@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Lock, Sparkles, ArrowLeft, Check } from 'lucide-react';
-import { ScreenType, UserRole } from '../types';
+import { User, Mail, Lock, ArrowLeft } from 'lucide-react';
 
 interface AuthScreenProps {
   initialMode?: 'signup' | 'login';
@@ -14,14 +13,15 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   onBackToLanding,
 }) => {
   const [mode, setMode] = useState<'signup' | 'login'>(initialMode);
-  const [fullName, setFullName] = useState('Jane Doe');
-  const [email, setEmail] = useState('jane@example.com');
-  const [password, setPassword] = useState('password123');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    // TODO: Replace with real auth API call
     setTimeout(() => {
       setIsLoading(false);
       onAuthSuccess(fullName || 'Sarah Mitchell', email || 'sarah@example.com');
@@ -30,6 +30,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
   const handleGoogleAuth = () => {
     setIsLoading(true);
+    // TODO: Replace with real Google OAuth
     setTimeout(() => {
       setIsLoading(false);
       onAuthSuccess('Sarah Mitchell', 'sarah.m@greenmarket.org');
